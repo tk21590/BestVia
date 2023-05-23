@@ -1,0 +1,51 @@
+﻿@for (int i = 0; i < list_ptype.Count; i++)
+{
+    var list_same_type = list_product.Where(c => c.ProductTypeId == list_ptype[i].Id).ToList();
+
+    if (list_same_type.Count > 0)
+    {
+        <HeaderHr Text="@list_same_type.First().ProductType.Name" Color="red" TextColor="text-danger" />
+
+        <div class="row m-3">
+            @for (int m = 0; m < list_same_type.Count; m++)
+            {
+                var item = list_same_type[m];
+                if (item.Stock > 0)
+                {
+                    <div class="col-lg-4 col-md-6 col-sm-12">
+
+                        @switch (item.ProductType.CategoryId)
+                        {
+                            case 1://Proxy
+                                <CardProductProxy Product="@item" />
+                                break;
+                            case 2://Tool
+                                <CardProductTool Product="@item" />
+                                break;
+                            case 3://Via
+                                <CardProductVia Product="@item" />
+                                break;
+                            case 4://Box
+                                <CardProductBox Product="@item" />
+                                break;
+                            default:
+                                break;
+                        }
+
+                    </div>
+                }
+
+            }
+        </div>
+
+    }
+}
+
+
+@code {
+
+    [Parameter]
+    public List<Product> list_product { get; set; }
+    [Parameter]
+    public List<ProductType> list_ptype { get; set; }
+}

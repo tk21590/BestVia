@@ -1,0 +1,63 @@
+﻿@page "/dialogcategory/{cateid}"
+@inject DialogService dialogService
+@inject ICategoryServicesClient _cateServices;
+@inject NotificationService _noti;
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="row m-3">
+            <RadzenText TextAlign="TextAlign.Left" TextStyle="TextStyle.H6" Class="rz-color-primary-light"><strong>@cate.Name</strong></RadzenText>
+        </div>
+        <div class="row m-3">
+            
+                <RadzenFormField Text="Tên" Style="width: 100%;" Variant="Variant.Text">
+                <RadzenTextBox @bind-Value="@cate.Name" Style="width: 100%;" />
+                </RadzenFormField>
+
+        </div>
+        <div class="row m-3 d-flex flex-wrap">
+
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="edit" Click="@EditProduct" Text="OK" Style="width: 120px" Class="m-4" />
+            <RadzenButton Click="(()=> dialogService.Close())" Icon="close" Style="width: 120px" ButtonStyle=" ButtonStyle.Light" Text="Cancel" Class="m-4" />
+
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public string cateid { get; set; }
+    Category cate = new();
+    async Task EditProduct()
+    {
+
+        var result = await _cateServices.EditAsync(cate);
+        Helper.ShowNotification(_noti, result);
+
+        StateHasChanged();
+        dialogService.Close();
+
+    }
+
+    protected override void OnInitialized()
+    {
+
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            cate = await _cateServices.GetIdAsync(cateid);
+            StateHasChanged();
+
+        }
+    }
+
+}
+

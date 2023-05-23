@@ -1,0 +1,213 @@
+﻿@page "/admin/users"
+
+
+@inject IUserServicesClient _userServices;
+@inject ICategoryServicesClient _cateServices;
+@inject IProductTypeServicesClient _ptypeServices;
+@inject IProductServicesClient _productServices;
+@inject ISummaryServicesClient _summaryServices;
+@inject NotificationService _noti;
+@inject DialogService _dialog
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<RadzenContent Container="main">
+    <ChildContent>
+        <RadzenCard>
+            <div class="row mt-3">
+
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <CardAdmin Text="Tổng tiền thành công" BGColor="bg-c-blue" Description="Tổng tiền đơn đã hoàn thành" Icon="fa fa-money-check-alt" Value="@orderStatistics.total_order_success_price" />
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <CardAdmin Text="Tổng tiền chưa xong" BGColor="bg-c-green" Description="Tổng tiền đơn chưa hoàn thành" Icon="fa fa-money-check" Value="@orderStatistics.total_order_not_success_price" />
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <CardAdmin Text="Tổng đơn thành công" BGColor="bg-c-yellow" Description="Tổng đơn đã hoàn thành" Icon="fa fa-cart-plus" Value="@orderStatistics.count_order_success" />
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <CardAdmin Text="Tổng đơn chưa xong" BGColor="bg-c-pink" Description="Tổng đơn chưa hoàn thành" Icon="fa fa-cart-arrow-down" Value="@orderStatistics.count_order_not_success" />
+                </div>
+
+            </div>
+            <div class="row mt-3">
+                <div class="col-lg-2 col-md-3 col-sm-4">
+
+                    <RadzenButton IsBusy=@loading Click=@(()=>SearchTime()) ButtonStyle="ButtonStyle.Secondary" ButtonType="ButtonType.Button" Icon="search" Shade="Shade.Dark" style="position: static; width: 100%" Text="Tổng theo ngày">
+                    </RadzenButton>
+                </div>
+                <div class="col-lg-10 col-md-9 col-sm-8">
+
+                    <RadzenDatePicker @bind-Value=@dfrom>
+                        <FooterTemplate>
+                            <RadzenButton Click=@(args =>dfrom = Core.Date_GetStartTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                        </FooterTemplate>
+                    </RadzenDatePicker>
+                    <RadzenDatePicker @bind-Value=@dto>
+                        <FooterTemplate>
+                            <RadzenButton Click=@(args => dto = Core.Date_GetEndTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                        </FooterTemplate>
+                    </RadzenDatePicker>
+                </div>
+            </div>
+        </RadzenCard>
+        <div class="row">
+            <div class="col-lg-12">
+                <RadzenCard>
+
+                    <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                    LogicalFilterOperator="LogicalFilterOperator.Or"
+                                    AllowSorting="true" PageSize="10" AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                    Data="@list_users"
+                                    TItem="UserView">
+                        <HeaderTemplate>
+                            <RadzenStack Orientation="Orientation.Horizontal">
+                                <RadzenBadge class="m-3 p-2" Style="font-size:20px" Shade="Shade.Lighter" BadgeStyle="BadgeStyle.Secondary" Text="Danh sách User">
+
+                                </RadzenBadge>
+                            </RadzenStack>
+                        </HeaderTemplate>
+                        <Columns>
+                            <RadzenDataGridColumn TItem="UserView" Property="SubId" Filterable="true" Title="Id" Frozen="false" Width="50px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="UserView" Property="UserName" Filterable="true" Title="Tên người dùng" Frozen="false" Width="100px" TextAlign="TextAlign.Left">
+                                <Template Context="item">
+                                     <div class="text-primary">
+                                        @item.UserName
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="UserView" Property="RefCode" Filterable="true" Title="Mã Ref/Ref" Frozen="false" Width="120px" TextAlign="TextAlign.Left">
+                                <Template Context="item">
+                                    @(item.RefCode + (string.IsNullOrEmpty(item.RefAdd) ? "" : "(" + item.RefAdd + ")"))
+                                </Template>
+
+                            </RadzenDataGridColumn>
+                            
+                            <RadzenDataGridColumn TItem="UserView" Property="RoleName" Filterable="true" Title="Quyền" Frozen="false" Width="60px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenBadge BadgeStyle="@Helper.ToBadgeRole(item.RoleName)" class="m-1" Text="@item.RoleName" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="UserView" Property="Balance" Filterable="true" Title="Số dư" Width="70px">
+                                <Template Context="item">
+                                    <div class="text-success">
+                                        @String.Format("{0}",Helper.Money_ConvertToString(item.Balance))
+                                    </div>
+                                </Template>
+                                <FooterTemplate>
+                                    Tổng :  <b>@String.Format("{0}",Helper.Money_ConvertToString(list_users.Sum(c=>c.Balance)))</b>
+                                </FooterTemplate>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="UserView" Property="Balance_Used" Filterable="true" Title="Sử dụng" Width="70px">
+                                <Template Context="item">
+                                    <div class="text-primary">
+                                        @String.Format("{0}",Helper.Money_ConvertToString(item.Balance_Used))
+                                    </div>
+
+                                </Template>
+                                <FooterTemplate>
+                                    Tổng :  <b>@String.Format("{0}",Helper.Money_ConvertToString(list_users.Sum(c=>c.Balance_Used)))</b>
+                                </FooterTemplate>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="UserView" Property="Balance_Total" Filterable="true" Title="Tổng nạp" Width="70px">
+                                <Template Context="item">
+                                    <div class="text-danger">
+                                        @String.Format("{0}",Helper.Money_ConvertToString(item.Balance_Total))
+                                    </div>
+
+                                </Template>
+                                <FooterTemplate>
+                                    Tổng :  <b>@String.Format("{0}",Helper.Money_ConvertToString(list_users.Sum(c=>c.Balance_Total)))</b>
+                                </FooterTemplate>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="UserView" Filterable="false" Property="DateLastLogin" Title="Đăng nhập" Width="80px">
+                                <Template Context="item">
+                                    @String.Format("{0}",Core.GetTimeMinify(item.DateLastLogin))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="UserView" Context="item" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="50px">
+                                <Template Context="item">
+                                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                                                  Variant="Variant.Flat" Size="ButtonSize.Medium"
+                                                  Click="(()=>OpenDialogUser(item.Id))">
+                                    </RadzenButton>
+                                    @*<RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete"
+                                    Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1">
+                                    </RadzenButton>*@
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+
+        </div>
+
+    </ChildContent>
+</RadzenContent>
+@code {
+    List<UserView> list_users = new();
+    List<Category> list_cate = new();
+    List<ProductType> list_ptype = new();
+    List<Product> list_product = new();
+    OrderStatistics orderStatistics = new();
+    SearchModel searchModel = new();
+
+    DateTime dfrom = DateTime.Today.AddDays(-30);
+    DateTime dto = DateTime.Today.AddDays(1).Date.AddTicks(-1).AddSeconds(-1);
+    string cateName = "";
+    bool loading;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dialog.OnClose += OnCloseDialog;
+
+            list_users = await _userServices.ListAsync();
+            list_cate = await _cateServices.ListAsync();
+            list_ptype = await _ptypeServices.ListAsync();
+            list_product = await _productServices.ListAsync();
+            orderStatistics = await _summaryServices.TongKetDoanhThu(new SearchModel
+                {
+                    from = Core.Date_DateTimeToUnitUnixTimestamp(Core.Date_GetFirstDayInMount()),
+                    to = Core.Date_GetTimeNowInt(),
+                    userorderid = "",
+                });
+
+            StateHasChanged();
+        }
+    }
+    async Task SearchTime()
+    {
+        loading = true;
+        searchModel.userorderid = "";
+        searchModel.from = Core.Date_DateTimeToUnitUnixTimestamp(dfrom);
+        searchModel.to = Core.Date_DateTimeToUnitUnixTimestamp(dto);
+        orderStatistics = await _summaryServices.TongKetDoanhThu(searchModel);
+        loading = false;
+        StateHasChanged();
+
+    }
+
+    private async void OnCloseDialog(dynamic result)
+    {
+        list_users = await _userServices.ListAsync();
+        list_cate = await _cateServices.ListAsync();
+        list_ptype = await _ptypeServices.ListAsync();
+        list_product = await _productServices.ListAsync();
+        StateHasChanged();
+    }
+  
+
+    async Task OpenDialogUser(string userId)
+    {
+        await _dialog.OpenAsync<EditUserDialog>($"Sửa thông tin user",
+                new Dictionary<string, object>() { { "userId", userId } },
+                new DialogOptions() { Width = "580px", Height = "700px", Resizable = true, Draggable = true });
+    }
+
+}

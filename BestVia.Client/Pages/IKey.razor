@@ -1,0 +1,122 @@
+﻿@page "/admin/keys"
+
+
+@inject IKeyServicesClient _keyServices;
+@inject NotificationService _noti;
+@inject DialogService _dialog
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+<RadzenContent Container="main">
+    <ChildContent>
+        <div class="row mt-3">
+            <div class="col-lg-12">
+                <RadzenCard>
+                    <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                    LogicalFilterOperator="LogicalFilterOperator.Or"
+                                    AllowSorting="true" PageSize="10" AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                    Data="@list_key"
+                                    TItem="Key">
+                        <HeaderTemplate>
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <RadzenButton Click=@(()=>OpenDialogKey("0")) ButtonStyle="ButtonStyle.Success" ButtonType="ButtonType.Button" Icon="add_circle_outline" Shade="Shade.Dark" style="position: static; width: 100%" Text="Thêm Key">
+                                    </RadzenButton>
+                                </div>
+                            </div>
+                        </HeaderTemplate>
+                        <Columns>
+                            <RadzenDataGridColumn TItem="Key" Property="Id" Filterable="true" Title="Id" Frozen="false" Width="50px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Key" Property="KeyName" Filterable="true" Title="Key Name" Frozen="false" Width="130px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Key" Property="KeyId" Filterable="true" Title="Key ID" Frozen="false" Width="140px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenText Text="@item.KeyId" TextStyle="TextStyle.Body2" class="text-primary font-weight-bold" />
+                                </Template>
+                                <FooterTemplate>
+                                    <b>@(list_key.Count(c => c.IsAvaiable) + "/" + list_key.Count() + " Key hoạt động!")</b>
+                                </FooterTemplate>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Key" Property="UserName" Filterable="true" Title="Tài khoản" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Key" Property="IsAvaiable" Filterable="true" Title="Hiệu lực" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenBadge BadgeStyle="@(item.IsAvaiable ? BadgeStyle.Success:BadgeStyle.Secondary)" class="m-1" Text="@(item.IsAvaiable ? "Hoạt động":"Không hoạt động")" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Key" Property="DateCreated" Filterable="true" Title="Ngày tạo" Frozen="false" Width="120px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @(Helper.Date_StringTimeConvert(item.DateCreated) + " " + String.Format("({0})", Core.GetTimeMinify(item.DateCreated)))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Key" Property="DateExpired" Filterable="true" Title="Ngày hết hạn" Frozen="false" Width="90px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @(Helper.Date_StringTimeConvert(item.DateExpired))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Key" Context="item" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="60px">
+                                <Template Context="item">
+                                    <RadzenButton Click="(()=>OpenDialogKey(item.Id.ToString()))"
+                                                  Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                                                  Variant="Variant.Flat" Size="ButtonSize.Medium">
+                                    </RadzenButton>
+                                    <RadzenButton Click="(()=>DeleteKey(item.Id))"
+                                                  ButtonStyle="ButtonStyle.Danger" Icon="delete"
+                                                  Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1">
+                                    </RadzenButton>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+
+        </div>
+
+    </ChildContent>
+</RadzenContent>
+@code {
+
+
+    List<Key> list_key = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dialog.OnClose += OnCloseDialog;
+
+            list_key = await _keyServices.ListAsync();
+            StateHasChanged();
+        }
+    }
+    private async void OnCloseDialog(dynamic result)
+    {
+
+        list_key = await _keyServices.ListAsync();
+        StateHasChanged();
+    }
+
+    async Task DeleteKey(int keyId)
+    {
+        var result = await _keyServices.DeleteAsync(keyId);
+        Helper.ShowNotification(_noti, result);
+        list_key = await _keyServices.ListAsync();
+
+
+    }
+    async Task OpenDialogKey(string keyId)
+    {
+        string header = "Thêm key mới";
+        if (keyId != "0")
+        {
+            header = "Sửa thông tin key";
+        }
+
+        await _dialog.OpenAsync<EditKeyDialog>(header,
+                   new Dictionary<string, object>() { { "keyId", keyId } },
+                   new DialogOptions() { Width = "580px", Height = "600px", Resizable = true, Draggable = true });
+    }
+
+
+}

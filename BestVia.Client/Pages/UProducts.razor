@@ -1,0 +1,156 @@
+﻿@page "/user/products"
+
+
+@inject IProductServicesClient _productServices;
+@inject IProductTypeServicesClient _ptypeServices;
+@inject ICategoryServicesClient _cateServices;
+@inject NotificationService _noti;
+@inject DialogService _dialog
+@inject AuthenticationStateProvider _authenProvider
+
+@attribute [Authorize]
+
+<style>
+    .rmn:hover {
+        background-color: #FF4500;
+    }
+
+    .active_rmn {
+        background-color: #FF4500;
+    }
+
+    .rmn {
+        /*    margin-left: 35px;
+                                                                                                                                                                                                                                                                                                                                margin-right: 35px;*/
+        width: 100%;
+        text-align: center;
+    }
+
+</style>
+<RadzenCard class="rz-border-radius-3" Style="width:100% ;display:block">
+
+    <RadzenRow>
+
+        <RadzenColumn SizeLG="2" SizeMD="6" SizeSM="12" Style="margin-top:50px">
+            <RadzenText class="mt-3 font-weight-bold" TextAlign="TextAlign.Left" TextStyle="TextStyle.Body1" Text="LỌC THEO" />
+            <RadzenRadioButtonList Style="font-size:13px" Orientation="Orientation.Vertical" Change="QueryItem"
+                                   @bind-Value="@idQuery" Data="@list_queryData" TValue="int" ValueProperty="Id" TextProperty="Name" class="mb-5">
+
+            </RadzenRadioButtonList>
+
+            <RadzenText class="mt-5 font-weight-bold" TextAlign="TextAlign.Left" TextStyle="TextStyle.Body1" Text="PHÂN LOẠI" />
+
+            <RadzenRadioButtonList Style="font-size:13px" Orientation="Orientation.Vertical" Change="ChangeCate"
+                                   @bind-Value="@idCate" Data="@list_cate" TValue="int" ValueProperty="Id" TextProperty="Name" class="mb-5">
+            </RadzenRadioButtonList>
+        </RadzenColumn>
+        <RadzenColumn SizeLG="10" SizeMD="6" SizeSM="12">
+
+
+            <ProductList list_product="list_product" list_ptype="list_ptype"></ProductList>
+
+        </RadzenColumn>
+
+    </RadzenRow>
+
+</RadzenCard>
+
+
+@code {
+    List<Product> list_product = new();
+    List<Category> list_cate = new();
+    List<ProductType> list_ptype = new();
+
+    public class QueryData
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+
+    List<QueryData> list_queryData = new List<QueryData>
+    {
+      new QueryData{Id=0,Name ="Số lượng"},
+      new QueryData{Id=1,Name ="Tên sản phẩm"},
+      new QueryData{Id=2,Name ="Giá tiền :từ thấp tới cao"},
+      new QueryData{Id=3,Name ="Giá tiền :từ cao tới thấp"},
+      new QueryData{Id=4,Name ="Thời gian bảo hành"},
+
+    };
+    Category category = new();
+    int idQuery = 0;
+    int idCate = 0;
+    string userId = "";
+    string roleName = "";
+
+    //Product product;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                roleName = user.FindFirst(ClaimTypes.Role).Value;
+                await LoadProduct();
+                //Danh sách list với cùng category
+                _dialog.OnClose += OnCloseDialog;
+
+            }
+
+
+
+            StateHasChanged();
+        }
+    }
+    private async Task LoadProduct()
+    {
+        list_product = await _productServices.ListAsync();
+        list_ptype = await _ptypeServices.ListAsync();
+        list_cate = await _cateServices.ListAsync();
+        category = list_cate.First();
+        idCate = category.Id;
+        list_product = await _productServices.ListIdCateAsync(idCate);
+    }
+    private async void OnCloseDialog(dynamic result)
+    {
+
+        await LoadProduct();
+      
+        StateHasChanged();
+    }
+
+    async Task ChangeCate()
+    {
+        list_product = await _productServices.ListIdCateAsync(idCate);
+
+    }
+
+    private async Task QueryItem()
+    {
+        switch (idQuery)
+        {
+            case 0://Theo số lượng
+                list_product = list_product.OrderBy(c => c.Stock).ToList();
+                break;
+            case 1://Theo tên
+                list_product = list_product.OrderBy(c => c.Name).ToList();
+                break;
+            case 2://Theo giá thấp tới cao
+                list_product = list_product.OrderBy(c => c.Price).ToList();
+                break;
+            case 3://Theo giá cao tới thấp
+                list_product = list_product.OrderByDescending(c => c.Price).ToList();
+                break;
+            case 4://Theo thời gian bảo hành
+                list_product = list_product.OrderByDescending(c => c.Guarantee).ToList();
+                break;
+            default:
+                break;
+        };
+        await InvokeAsync(StateHasChanged);
+    }
+}
+

@@ -1,0 +1,335 @@
+﻿@page "/admin/products"
+
+@inject ICategoryServicesClient _cateServices;
+@inject IProductTypeServicesClient _ptypeServices;
+@inject IProductServicesClient _productServices;
+@inject IDescriptionServicesClient _desServices;
+@inject NotificationService _noti;
+@inject DialogService _dialog
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<RadzenContent Container="main">
+    <ChildContent>
+        <div class="row mt-3">
+            <div class="col-lg-3 col-md-6 col-sm-12">
+                <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                AllowSorting="true" PageSize="5" AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                Data="@list_cate"
+                                TItem="Category">
+                    <HeaderTemplate>
+                        <RadzenRow>
+                            <RadzenColumn SizeLG="6" SizeSM="12">
+                                <RadzenStack Orientation="Orientation.Horizontal">
+                                    <RadzenButton Click=@(()=>AddCategory()) ButtonStyle="ButtonStyle.Success"
+                                                  Icon="add_circle_outline" Shade="Shade.Dark"
+                                                  Size="ButtonSize.Medium" class="mt-2"
+                                                  Style="position: static; width: 100%"
+                                                  Text="Thêm Loại">
+
+                                    </RadzenButton>
+
+
+                                </RadzenStack>
+                            </RadzenColumn>
+                            <RadzenColumn SizeLG="6" SizeSM="12">
+
+                                <RadzenFormField Text="Tên loại" Style="width: 100%;" Variant="Variant.Outlined">
+                                    <RadzenTextBox Placeholder="Tên" @bind-Value=@cateName class="w-100" />
+                                </RadzenFormField>
+                            </RadzenColumn>
+
+                        </RadzenRow>
+
+
+                    </HeaderTemplate>
+                    <Columns>
+                        <RadzenDataGridColumn TItem="Category" Property="Name" Filterable="false" Title="Phân loại" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.Id)" class="m-1" Text="@item.Name" />
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="Category" Context="item" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="80px">
+                            <Template Context="item">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                                              Variant="Variant.Flat" Size="ButtonSize.Medium"
+                                              Click="(()=>OpenDialogCate(item.Id.ToString()))">
+                                </RadzenButton>
+                                @*    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete"
+                                Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1">
+                                </RadzenButton>*@
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+
+            <div class="col-lg-5 col-md-6 col-sm-12">
+
+                <RadzenDataGrid Responsive="true" AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                AllowSorting="true" PageSize="5" AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                Data="@list_ptype"
+                                TItem="ProductType">
+                    <HeaderTemplate>
+                        <RadzenStack Orientation="Orientation.Horizontal">
+                            <RadzenRow>
+                                <RadzenColumn SizeLG="4" SizeSM="12">
+                                    <RadzenButton Click=@(()=>AddProductType())
+                                                  ButtonStyle="ButtonStyle.Success"
+                                                  Size="ButtonSize.Medium" Style="position: static; width: 100%"
+                                                  Icon="add_circle_outline" Shade="Shade.Dark"
+                                                  class="mt-3"
+                                                  Text="Thêm Nhóm">
+                                    </RadzenButton>
+                                </RadzenColumn>
+                                <RadzenColumn SizeLG="8" SizeSM="12">
+                                    <RadzenFormField Text="Tên nhóm" Style="width: 100%;" Variant="Variant.Outlined">
+                                        <RadzenTextBox @bind-Value=@productTypeAdd.Name />
+                                    </RadzenFormField>
+                                    <RadzenFormField Text="Phân loại" Style="width: 100%;" Variant="Variant.Outlined">
+                                        <RadzenDropDown TValue="int" @bind-Value="productTypeAdd.CategoryId"
+                                                        AllowFiltering="true" Data="@(list_cate)"
+                                                        TextProperty="Name" ValueProperty="Id" />
+                                    </RadzenFormField>
+
+                                </RadzenColumn>
+
+                            </RadzenRow>
+
+
+                        </RadzenStack>
+                    </HeaderTemplate>
+
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ProductType" Property="Name" Filterable="false" Title="Tên" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="ProductType" Property="Category.Name" Filterable="false" Title="Nhóm" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.CategoryId)" class="m-1" Text="@item.Category.Name" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ProductType" Context="item" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="80px">
+                            <Template Context="item">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                                              Variant="Variant.Flat" Size="ButtonSize.Medium"
+                                              Click="(()=>OpenDialogPtype(item.Id.ToString()))">
+                                </RadzenButton>
+                                @* <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete"
+                                Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1">
+                                </RadzenButton>*@
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <RadzenCard>
+                    <RadzenStack Orientation="Orientation.Vertical">
+                        <RadzenText Text="Cài đặt thông báo" TagName="TagName.P" TextStyle="TextStyle.DisplayH5" TextAlign="TextAlign.Left"></RadzenText>
+                        <RadzenDropDown @bind-Value=@description.Header Data=@list_description Style="width: 100%; max-width: 400px;" />
+
+                        <RadzenHtmlEditor @bind-Value=@description.Content style="height: 300px;" />
+                        <RadzenButton Click="@AddDescription"
+                                      Icon="edit" ButtonStyle="ButtonStyle.Info" Text="Cài đặt"
+                                      Variant="Variant.Flat" Size="ButtonSize.Medium" />
+                    </RadzenStack>
+
+                </RadzenCard>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-lg-12">
+                <RadzenCard>
+                    <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Advanced"
+                                    AllowSorting="true" PageSize="10" AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                    Data="@list_product"
+                                    TItem="Product">
+                        <HeaderTemplate>
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <RadzenButton Click=@(()=>OpenDialogAddProduct(0)) ButtonStyle="ButtonStyle.Success"
+                                                  ButtonType="ButtonType.Button" Icon="add_circle_outline" Shade="Shade.Dark" style="position: static; width: 100%" Text="Thêm sản phẩm chính">
+                                    </RadzenButton>
+                                </div>
+                            </div>
+                        </HeaderTemplate>
+                        <Columns>
+
+                            <RadzenDataGridColumn TItem="Product" Property="Id" Filterable="false" Title="Id" Frozen="false" Width="50px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Product" Property="Username" Filterable="false" Title="Người tạo" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Product" Property="Name" Filterable="false" Title="Sản phẩm" Frozen="false" Width="160px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Product" Property="ProductType.Name" Filterable="false" Title="Nhóm" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="Product" Property="ProductType.Category.Name" Filterable="false" Title="Loại" Frozen="false" Width="60px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.ProductType.Category.Id)" class="m-1" Text="@item.ProductType.Category.Name" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Product" Property="Stock" Filterable="false" Title="Còn lại/Kho" Frozen="false" Width="90px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @(Helper.Money_ConvertToString(item.Stock) + "/" + Helper.Money_ConvertToString(item.Amount))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Product" Property="Price" Filterable="false" Title="Giá/Hoa hồng" Frozen="false" Width="90px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @(Helper.Money_ConvertToString(item.Price) + "/" + Helper.Money_ConvertToString(item.PriceIncome))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Product" Property="Guarantee" Filterable="false" Title="Bảo hành" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @item.Guarantee.ToString() ngày
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Product" Property="DateCreated" Filterable="false" Title="Ngày tạo" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @String.Format("{0}",Helper.Date_StringTimeConvert(item.DateCreated))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Product" Property="DateUpdated" Filterable="false" Title="Cập nhật" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    @String.Format("{0}",Core.GetTimeMinify(item.DateUpdated))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="Product" Context="item" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="80px">
+                                <Template Context="item">
+                                    <RadzenButton Click=@(() =>OpenDialogAddProduct(item.Id))
+                                                  Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                                                  Variant="Variant.Flat" Size="ButtonSize.Medium">
+                                    </RadzenButton>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+
+        </div>
+    </ChildContent>
+</RadzenContent>
+@code {
+    List<Category> list_cate = new();
+    List<ProductType> list_ptype = new();
+    List<Product> list_product = new();
+    string cateName = "";
+    ProductType productTypeAdd = new ProductType();
+    Product productAdd = new Product();
+    Description description = new();
+
+
+    List<string> list_description = new();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dialog.OnClose += OnCloseDialog;
+
+            list_cate = await _cateServices.ListAsync();
+            list_ptype = await _ptypeServices.ListAsync();
+            list_product = await _productServices.ListAsync();
+            list_description = new List<string>
+            {
+                "Thông báo đến user",
+                "Chính sách bảo hành"
+            };
+            description.Header = list_description[0];
+
+            StateHasChanged();
+        }
+    }
+    private async Task AddDescription()
+    {
+        var result = await _desServices.AddAsync(description);
+        Helper.ShowNotification(_noti, result);
+        StateHasChanged();
+    }
+    private async void OnCloseDialog(dynamic result)
+    {
+        list_cate = await _cateServices.ListAsync();
+        list_ptype = await _ptypeServices.ListAsync();
+        list_product = await _productServices.ListAsync();
+        StateHasChanged();
+    }
+
+   
+    async Task AddProduct()
+    {
+
+        if (!string.IsNullOrEmpty(productAdd.Name) && productAdd.ProductTypeId > 0)
+        {
+            var result = await _productServices.AddAsync(productAdd);
+            Helper.ShowNotification(_noti, result);
+            list_product = await _productServices.ListAsync();
+            StateHasChanged();
+
+        }
+
+    }
+    async Task AddProductType()
+    {
+
+        if (!string.IsNullOrEmpty(productTypeAdd.Name) && productTypeAdd.CategoryId > 0)
+        {
+            var result = await _ptypeServices.AddAsync(productTypeAdd);
+            Helper.ShowNotification(_noti, result);
+            list_ptype = await _ptypeServices.ListAsync();
+            StateHasChanged();
+
+        }
+
+    }
+
+    async Task AddCategory()
+    {
+
+        if (!string.IsNullOrEmpty(cateName))
+        {
+            var result = await _cateServices.AddAsync(new Category { Name = cateName });
+            Helper.ShowNotification(_noti, result);
+            list_cate = await _cateServices.ListAsync();
+            StateHasChanged();
+
+        }
+
+    }
+    async Task OpenDialogUser(string userId)
+    {
+        await _dialog.OpenAsync<EditUserDialog>($"Sửa thông tin user",
+                new Dictionary<string, object>() { { "userId", userId } },
+                new DialogOptions() { Width = "580px", Height = "700px", Resizable = true, Draggable = true });
+    }
+    async Task OpenDialogPtype(string ptypeid)
+    {
+        await _dialog.OpenAsync<EditProductTypeDialog>($"Sửa thông tin",
+                new Dictionary<string, object>() { { "ptypeid", ptypeid } },
+                new DialogOptions() { Width = "440px", Height = "360px", Resizable = true, Draggable = true });
+    }
+    async Task OpenDialogCate(string cateid)
+    {
+        await _dialog.OpenAsync<EditCategoryDialog>($"Sửa phân loại",
+                new Dictionary<string, object>() { { "cateid", cateid } },
+                new DialogOptions() { Width = "440px", Height = "360px", Resizable = true, Draggable = true });
+
+    }
+    async Task OpenDialogAddProduct(int producId)
+    {
+        string header = "";
+        if (producId > 0)
+        {
+            header = "Cập nhật sản phẩm chính";
+
+        }
+        else
+        {
+            header = "Thêm sản phẩm chính";
+        }
+        await _dialog.OpenAsync<AddProductDialog>(header,
+                new Dictionary<string, object>() { { "productId", producId } },
+                new DialogOptions() { Width = "850px", Height = "700px", Resizable = true, Draggable = true });
+
+    }
+
+}

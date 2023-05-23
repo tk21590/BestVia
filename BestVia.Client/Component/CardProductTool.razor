@@ -1,0 +1,47 @@
+﻿@inject DialogService _dialog
+@inject IJSRuntime JSRuntime;
+
+
+<RadzenCard Style="width: 340px;height:500px ;position: relative;" Class="rz-border-radius-3 rz-shadow-7 mb-4 ">
+    <RadzenBadge Style="font-size:14px;position: absolute;top: 0;  left: 0;" class="m-3 p-2" BadgeStyle="BadgeStyle.Primary"
+                 Text="@Helper.Money_ConvertToString(Product.Price)" IsPill="true" />
+
+    <RadzenBadge Style="font-size:12px;position: absolute;top: 0;  right: 0;" class="m-3 p-2" BadgeStyle="BadgeStyle.Success"
+                 Text="@Core.Date_DayToMonthYear(Product.Guarantee)" IsPill="true" />
+
+    <RadzenStack class="mt-3" Orientation="Orientation.Vertical" AlignItems="AlignItems.Center" Gap="0.5rem">
+
+        <RadzenImage Path="@Product.PathImage"
+                     Class="" Style="width: 70%; height: 40%;"></RadzenImage>
+
+        <RadzenText TextStyle="TextStyle.Subtitle1" Class="rz-mb-0 text-primary"><strong>@(Product.Name)</strong></RadzenText>
+        <div>@(new MarkupString(Product.Setting))</div>
+        <RadzenButton class="rz-mt-1 rz-mb-1" Click="OpenUrlDownload"
+                      Size="ButtonSize.Small" Icon="get_app" ButtonStyle="ButtonStyle.Primary" Text="Tải về dùng thử">
+        </RadzenButton>
+        <RadzenButton class="" Click="OpenDialogOrder"
+                      Size="ButtonSize.Small" Icon="input" ButtonStyle="ButtonStyle.Secondary" Text="Mua Key Sử Dụng"></RadzenButton>
+      
+    </RadzenStack>
+
+</RadzenCard>
+
+
+@code {
+    [Parameter]
+    public Product Product { get; set; }
+
+    
+    async Task OpenDialogOrder()
+    {
+        await _dialog.OpenAsync<AddOrderDialog>($"Thanh toán đơn hàng!",
+                      new Dictionary<string, object>() { { "productId", Product.Id.ToString() } },
+                      new DialogOptions() { Width = "550px", Height = "380px", Resizable = true, Draggable = true });
+    }
+
+    async Task OpenUrlDownload()
+    {
+        await JSRuntime.InvokeAsync<object>("open", Product.UrlDownload, "_blank");
+
+    }
+}

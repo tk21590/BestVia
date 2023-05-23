@@ -1,0 +1,121 @@
+﻿@page "/dialogUser/{userId}"
+@inject DialogService dialogService
+@inject IUserServicesClient _userServices;
+@inject NotificationService _noti;
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="row m-3">
+            <RadzenText TextAlign="TextAlign.Left" TextStyle="TextStyle.H6" Class="rz-color-primary-light"><strong>@user.UserName</strong> - (@user.Id)</RadzenText>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenDropDown AllowClear="true" TValue="string" Class="w-100"
+                                Placeholder="Chọn quyền..."
+                                Data=@list_role 
+                                @bind-Value="@user.RoleName"/>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Key" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@user.ApiKey" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-4 col-md-6">
+                <RadzenFormField Text="Số dư" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="long" @bind-Value="@user.Balance" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <RadzenFormField Text="Sử dụng" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="long" @bind-Value="@user.Balance_Used" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <RadzenFormField Text="Tổng nạp" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="long" @bind-Value="@user.Balance_Total" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Mã Ref" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@user.RefAdd" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-md-12 ">
+
+                <RadzenCheckBox @bind-Value="@user.Block" class="mt-3" />
+                <RadzenLabel class="mt-3" Text="@(user.Block ? "Khóa user" : "Bình thường")" Component="CheckBox" Style="margin-left: 8px; vertical-align: middle;" />
+
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Ngày tạo tài khoản" Style="width: 100%;" Variant="Variant.Text" active>
+                    <RadzenTextBox Value="@Helper.Date_StringTimeConvert(user.DateCreated)" Style="width: 100%;" Disabled="true" />
+                </RadzenFormField>
+            </div>
+
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Lần cuối đăng nhập" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox Value="@Helper.Date_StringTimeConvert(user.DateLastLogin)" Style="width: 100%;" Disabled="true" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="edit" Click="@EditUser" Text="OK" Style="width: 190px" Class="m-4" />
+            <RadzenButton Click="(()=> dialogService.Close())" Icon="close" Style="width: 190px" ButtonStyle=" ButtonStyle.Light" Text="Cancel" Class="m-4" />
+
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public string userId { get; set; }
+    public List<string> list_role = new List<string>
+    {
+        "Admin",
+        "SuperMod",
+        "Mod",
+        "Customer"
+    };
+    UserView user = new();
+    async Task EditUser()
+    {
+
+      
+        var result = await _userServices.EditAsync(user);
+        Helper.ShowNotification(_noti, result);
+
+        StateHasChanged();
+        dialogService.Close();
+
+    }
+
+    protected override void OnInitialized()
+    {
+
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            user = await _userServices.GetIdAsync(userId);
+            StateHasChanged();
+
+        }
+    }
+
+}
+

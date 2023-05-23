@@ -1,0 +1,114 @@
+﻿@page "/admin/items"
+
+
+@inject IViaServicesClient _viaServices;
+@inject IProxyServicesClient _proxyServices;
+@inject NotificationService _noti;
+@inject DialogService _dialog
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<RadzenContent Container="main">
+    <ChildContent>
+        <div class="row mt-3">
+            <RadzenCard>
+                <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                LogicalFilterOperator="LogicalFilterOperator.Or"
+                                AllowSorting="true" PageSize="10" AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                Data="@list_via"
+                                TItem="Via">
+                    <HeaderTemplate>
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <RadzenButton Click=@(()=>LoadVia()) IsBusy="@isLoadVia"
+                                    ButtonStyle="ButtonStyle.Danger" ButtonType="ButtonType.Button" Icon="cached" Shade="Shade.Light" style="position: static; width: 100%" Text="Load Via">
+                                </RadzenButton>
+                            </div>
+                        </div>
+                    </HeaderTemplate>
+                    <Columns>
+                        <RadzenDataGridColumn TItem="Via" Property="Id" Filterable="true" Title="Id" Frozen="false" Width="50px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="Username" Filterable="true" Title="Người mua" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="UID" Filterable="true" Title="UID" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="User" Filterable="true" Title="Username" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="Password" Filterable="true" Title="Password" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="TwoFa" Filterable="true" Title="TwoFa" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="Mail" Filterable="true" Title="Mail" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="PasswordMail" Filterable="true" Title="PasswordMail" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Via" Property="IsSold" Filterable="true" Title="Đã bán" Frozen="false" Width="50px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                @(item.IsSold ? "Đã bán" : "Chưa bán")
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenCard>
+        </div>
+        <div class="row mt-3">
+            <RadzenCard>
+                <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                LogicalFilterOperator="LogicalFilterOperator.Or"
+                                AllowSorting="true" PageSize="10" AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                Data="@list_proxy"
+                                TItem="Proxy">
+                    <HeaderTemplate>
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <RadzenButton Click=@(()=>LoadProxy()) IsBusy="@isLoadProxy"
+                                    ButtonStyle="ButtonStyle.Danger" ButtonType="ButtonType.Button" Icon="cached" Shade="Shade.Light" style="position: static; width: 100%" Text="Load Proxy">
+                                </RadzenButton>
+                            </div>
+                        </div>
+                    </HeaderTemplate>
+                    <Columns>
+                        <RadzenDataGridColumn TItem="Proxy" Property="Id" Filterable="true" Title="Id" Frozen="false" Width="50px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Proxy" Property="Username" Filterable="true" Title="Người mua" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Proxy" Property="Name" Filterable="true" Title="Proxy" Frozen="false" Width="80px" TextAlign="TextAlign.Center" />
+                        <RadzenDataGridColumn TItem="Proxy" Property="IsSold" Filterable="true" Title="Đã bán" Frozen="false" Width="50px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                @(item.IsSold ? "Đã bán" : "Chưa bán")
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenCard>
+        </div>
+    </ChildContent>
+</RadzenContent>
+@code {
+    List<Via> list_via = new();
+    List<Proxy> list_proxy = new();
+    bool isLoadProxy, isLoadVia;
+
+    async Task LoadProxy()
+    {
+        isLoadProxy = true;
+        list_proxy = await _proxyServices.ListAsync();
+        isLoadProxy = false;
+        _noti.Notify(NotificationSeverity.Info, "Loading succes:", $"Load thành công {list_proxy.Count} proxy", 5000);
+
+        StateHasChanged();
+
+
+
+    }
+    async Task LoadVia()
+    {
+        isLoadVia = true;
+        list_via = await _viaServices.ListAsync();
+        _noti.Notify(NotificationSeverity.Info, "Loading succes:", $"Load thành công {list_via.Count} via", 5000);
+        isLoadVia = false;
+        StateHasChanged();
+
+
+
+    }
+  
+  
+
+}

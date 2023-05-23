@@ -1,0 +1,248 @@
+﻿@page "/user/mods"
+
+@inject ISummaryServicesClient _summaryServices;
+@inject IOrderServicesClient _orderServices;
+@inject AuthenticationStateProvider _authenProvider
+@inject NavigationManager _navigate
+
+@inject NotificationService _noti;
+
+
+@attribute [Authorize]
+
+
+<RadzenCard class="rz-border-radius-3 " Style="width:100% ;display:block">
+
+    <RadzenRow>
+        <RadzenColumn SizeLG="12" SizeMD="12" SizeSM="12">
+            <RadzenCard Class="rz-border-radius-3 mb-4 rz-shadow-10 rz-border-primary">
+                <RadzenRow Gap="0.5rem">
+
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem">
+
+                        <RadzenImage Path="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNz5Hyzq4YRohj4fkzJuyIqPzIOG4NuZFCxQ&usqp=CAU" Class="rz-border-radius-10" Style="width: 100px; height: 100px;" />
+                        <RadzenStack Gap="0">
+                            <RadzenText TextStyle="TextStyle.Body2" Class="rz-mb-0 text-danger">Giới thiệu khách hàng khác đến với website nhận ngay hoa hồng </RadzenText>
+
+                            <RadzenText TextStyle="TextStyle.Subtitle1" Class="mb-2 mt-2 p-2 text-primary rz-border-radius-3 rz-border-primary"><strong>@url_ref</strong></RadzenText>
+
+                            <RadzenText TextStyle="TextStyle.Caption" Class="rz-mb-0 text-danger">Copy đường dẫn phía trên và gửi nó tới khách hàng của bạn </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Class="rz-mb-0 text-danger">Hoặc dán mã phía dưới vào ô MÃ GIỚI THIỆU tại phần đăng kí tài khoản </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Subtitle1" Class="mb-2 mt-2 p-2 text-danger rz-border-radius-3 rz-border-primary"><strong>@userInfo.refcode</strong></RadzenText>
+
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenRow>
+                <hr style="border: none; background-color: rgba(0,0,0,.08); height: 3px; margin: 1rem 0;" />
+                <RadzenRow Gap="0.5rem">
+                    <RadzenColumn Size="6" Style="align-content:center">
+
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+
+                            <RadzenStack Gap="0">
+
+                                <RadzenText TextStyle="TextStyle.Overline" TagName="TagName.P" Class="rz-mb-1 text-info">Tổng hoa hồng của bạn</RadzenText>
+
+                                <RadzenText Style="font-size:22px" TextStyle="TextStyle.Overline" TagName="TagName.P" Class="rz-mb-0 text-danger font-bold">@Helper.Money_ConvertToString(userInfo.total_income)</RadzenText>
+
+
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem">
+
+                            <RadzenStack Gap="0">
+
+                                <RadzenText TextStyle="TextStyle.Overline" TagName="TagName.P" Class="rz-mb-1 text-info">Tổng thành viên bạn giới thiệu</RadzenText>
+
+                                <RadzenText Style="font-size:22px" TextStyle="TextStyle.Overline" TagName="TagName.P" Class="rz-mb-0 text-danger font-bold">@Helper.Money_ConvertToString(userInfo.total_ref)</RadzenText>
+
+
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenColumn>
+
+                </RadzenRow>
+
+                <hr style="border: none; background-color: rgba(0,0,0,.08); height: 3px; margin: 1rem 0;" />
+                <RadzenRow Gap="0.5rem">
+                    <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start">
+                        <RadzenText Style="font-size:18px" TextStyle="TextStyle.Overline" Class="rz-mb-1 text-secondary font-weight-bold">ĐIỀU KIỆN:</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.P" Class="text-info">Mỗi tài khoản chỉ có 1 mã ref duy nhất </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.P" Class="text-info">Hoa hồng chỉ được tính khi khách hàng bạn giới thiệu thanh toán đơn hàng trên website </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.P" Class="text-info">Chỉ những đơn hàng thành công mới được tính hoa hồng </RadzenText>
+                    </RadzenStack>
+                </RadzenRow>
+            </RadzenCard>
+        </RadzenColumn>
+
+    </RadzenRow>
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenCard Class="rz-border-radius-3 mb-4 rz-shadow-10 rz-border-primary">
+                <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                LogicalFilterOperator="LogicalFilterOperator.Or"
+                                AllowSorting="true" PageSize="10" AllowPaging="true"
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                Data="@list_order_ref"
+                                TItem="Order">
+                    <HeaderTemplate>
+                        <div class="row">
+                            <RadzenStack Orientation="Orientation.Horizontal">
+                                <RadzenBadge class="m-3 p-2" Style="font-size:20px" Shade="Shade.Lighter" BadgeStyle="BadgeStyle.Secondary" Text="Danh sách đơn hoa hồng của bạn">
+
+                                </RadzenBadge>
+                            </RadzenStack>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-lg-4 col-sm-6">
+
+                                <RadzenButton Click="SearchInComing" ButtonStyle="ButtonStyle.Secondary"
+                                              ButtonType="ButtonType.Button" Icon="search" Shade="Shade.Dark" style="position: static; width: 100%" Text="Tìm theo ngày">
+                                </RadzenButton>
+                            </div>
+                            <div class="col-lg-8 col-sm-6">
+                                <RadzenDatePicker @bind-Value=@dfrom Min="DateTime.Today.AddDays(-30)" Max="DateTime.Today">
+                                    <FooterTemplate>
+                                        <RadzenButton Click=@(args =>dfrom = Core.Date_GetStartTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                                    </FooterTemplate>
+                                </RadzenDatePicker>
+                                <RadzenDatePicker @bind-Value=@dto Min="DateTime.Today.AddDays(-30)" Max="DateTime.Today">
+                                    <FooterTemplate>
+                                        <RadzenButton Click=@(args => dto = Core.Date_GetEndTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                                    </FooterTemplate>
+                                </RadzenDatePicker>
+                            </div>
+                        </div>
+                        <div class="row ml-2 mt-2">
+                            <RadzenText class="text-danger font-weight-bold" TextStyle="TextStyle.Caption" Text="Bạn chỉ có thể tìm kiếm tối đa 30 ngày gần nhất"></RadzenText>
+                        </div>
+                    </HeaderTemplate>
+                    <Columns>
+
+                        <RadzenDataGridColumn TItem="Order" Property="Khách đặt" Filterable="true" Title="UserOrderName" Frozen="false" Width="70px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                @item.UserOrderName
+                            </Template>
+                            <FooterTemplate>
+                                Tổng đơn:  <b>@String.Format("{0}",Helper.Money_ConvertToString(list_order_ref.Count))</b>
+                            </FooterTemplate>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="Order" Property="Product.Name" Filterable="true" Title="Tên" Frozen="false" Width="120px" TextAlign="TextAlign.Left">
+                            <Template Context="item">
+                                @item.Product.Name
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Order" Property="TotalPrice" Filterable="true" Title="Giá" Frozen="false" Width="90px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                @String.Format("{0}",Helper.Money_ConvertToString(item.TotalPrice))
+                            </Template>
+                            <FooterTemplate>
+                                Tổng :  <b>@String.Format("{0}",Helper.Money_ConvertToString(list_order_ref.Sum(c=>c.TotalPrice)))</b>
+                            </FooterTemplate>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Order" Property="TotalPriceIncome" Filterable="true" Title="Hoa hồng" Frozen="false" Width="90px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                @if (userRole == "Customer")
+                                {
+                                    String.Format("{0}", Helper.Money_ConvertToString(item.TotalPriceIncome));
+                                }
+                                else
+                                {
+                                    String.Format("{0}", Helper.Money_ConvertToString(item.TotalPriceIncomeMod));
+
+                                }
+
+                            </Template>
+                            <FooterTemplate>
+                                @if (userRole == "Customer")
+                                {
+
+                                    <b>@String.Format("{0}",Helper.Money_ConvertToString(list_order_ref.Sum(c => c.TotalPriceIncome)))</b>
+                                }
+                                else
+                                {
+
+                                    <b>@String.Format("{0}",Helper.Money_ConvertToString(list_order_ref.Sum(c => c.TotalPriceIncomeMod)))</b>
+
+                                }
+                            </FooterTemplate>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Order" Property="DateOrder" Filterable="false" Title="Ngày đặt" Frozen="false" Width="100px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                @(Helper.Date_StringTimeConvert(item.DateOrder) + " " + String.Format("({0})", Core.GetTimeMinify(item.DateOrder)))
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="Order" Property="Status.Name" Filterable="false" Title="Trạng thái" Frozen="false" Width="80px" TextAlign="TextAlign.Center">
+                            <Template Context="item">
+                                <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.StatusId)" class="m-1" Text="@item.Status.Name" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+
+</RadzenCard>
+
+
+@code {
+    UserInfo userInfo = new();
+    List<Order> list_order_ref = new();
+    string userId = "";
+    string userRole = "";
+    string url_ref = "";
+
+
+    SearchModel searchModel = new();
+
+    DateTime dfrom = DateTime.Today.AddDays(-30);
+    DateTime dto = DateTime.Today.AddDays(1).Date.AddTicks(-1).AddSeconds(-1);
+    long total_income = 0;
+    async Task SearchInComing()
+    {
+
+        searchModel.from = Core.Date_DateTimeToUnitUnixTimestamp(dfrom);
+        searchModel.to = Core.Date_DateTimeToUnitUnixTimestamp(dto);
+        list_order_ref = await _orderServices.ListRefAsync(searchModel);
+        StateHasChanged();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                userRole = user.FindFirst(ClaimTypes.Role).Value;
+
+                userInfo = await _summaryServices.LayThongTinUser(userId, true);
+
+
+                searchModel.ref_add = userInfo.refcode;
+                searchModel.from = Core.Date_DateTimeToUnitUnixTimestamp(dfrom);
+                searchModel.to = Core.Date_DateTimeToUnitUnixTimestamp(dto);
+                list_order_ref = await _orderServices.ListRefAsync(searchModel);
+
+
+                string baseUri = _navigate.BaseUri;
+                Uri uri = new Uri(baseUri);
+                string extractedUrl = $"{uri.Scheme}://{uri.Host}";
+
+                url_ref = extractedUrl + "/register/" + userInfo.refcode;
+            }
+
+
+            StateHasChanged();
+        }
+    }
+}
+

@@ -1,0 +1,90 @@
+﻿<div class="card @BGColor order-card">
+    <div class="card-block">
+        <h6 class="m-b-20 text-white" style="font-size:18px">@Text</h6>
+        <h2 class="text-right mr-3 text-white"><i class="@Icon f-left  text-white-50"></i><span>@Helper.Money_ConvertToString(Value)</span></h2>
+        <p class="m-b-0">@Description</p>
+    </div>
+</div>
+
+<style>
+    /*    body {
+                margin-top: 20px;
+                background: #FAFAFA;
+            }
+        */
+    .order-card {
+        color: white;
+        margin-top: 20px;
+        max-width :350px;
+    }
+
+    .bg-c-blue {
+        background: linear-gradient(45deg,#4169E1,#73b4ff);
+    }
+
+    .bg-c-green {
+        background: linear-gradient(45deg,#008000,#59e0c5);
+    }
+
+    .bg-c-yellow {
+        background: linear-gradient(45deg,#FFA500,#FFD700);
+    }
+
+    .bg-c-pink {
+        background: linear-gradient(45deg,#FF0000,#ff869a);
+    }
+
+    .bg-c-purpil {
+        background: linear-gradient(45deg,#4B0082,#9932CC);
+    }
+
+    .bg-c-brown {
+        background: linear-gradient(45deg,#8B4513,#F4A460);
+    }
+
+    .card {
+        border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2.94px 0.06px rgba(4,26,55,0.16);
+        box-shadow: 0 1px 2.94px 0.06px rgba(4,26,55,0.16);
+        border: none;
+        margin-bottom: 30px;
+        -webkit-transition: all 0.3s ease-in-out;
+        transition: all 0.3s ease-in-out;
+    }
+
+        .card .card-block {
+            padding: 25px;
+        }
+        .card .card-block p{
+                    font-size: 14px;
+
+        }
+
+    .order-card i {
+        font-size: 29px;
+    }
+
+    .f-left {
+        float: left;
+    }
+
+    .f-right {
+        float: right;
+    }
+
+</style>
+
+@code {
+    [Parameter]
+    public long Value { get; set; }
+    [Parameter]
+    public string Text { get; set; }
+    [Parameter]
+    public string BGColor { get; set; }
+    [Parameter]
+    public string Icon { get; set; }
+    [Parameter]
+    public string Description { get; set; }
+
+
+}

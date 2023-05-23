@@ -1,0 +1,79 @@
+﻿@page "/dialogComplain/{orderId}"
+@inject IOrderServicesClient _orderServices;
+@inject AuthenticationStateProvider _authenProvider
+
+@inject NotificationService _noti;
+@inject DialogService _dialog
+@attribute [Authorize]
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="row m-3">
+            <RadzenText class="text-danger" Text="@("Bạn đang khiếu nại đơn hàng ID [" + order.Id +"] vui lòng điền đầy đủ lý do khiếu nại sau đó bấm xác nhận! Admin sẽ giải quyết vấn đề của bạn trong vòng 12-24 tiếng!")" TextAlign="TextAlign.Center" TextStyle="TextStyle.Body2" />
+        </div>
+        <div class="row m-3">
+
+            <RadzenFormField Text="Lý do khiếu nại" Style="width: 100%;" Variant="Variant.Text">
+                <RadzenTextBox @bind-Value="@complain.reason" Style="width: 100%;" />
+            </RadzenFormField>
+            <RadzenText Visible=@isWarning class="text-danger" Text="@textWarning" TextAlign="TextAlign.Left" TextStyle="TextStyle.Caption" />
+
+        </div>
+        <div class="row m-3">
+
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="add" Click="@ConfirmComplain" Text="Xác nhận" Style="width: 150px" Class="m-2" />
+            <RadzenButton Click="(()=> _dialog.Close())" Icon="close" Style="width: 150px" ButtonStyle=" ButtonStyle.Light" Text="Hủy bỏ" Class="m-2" />
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public string orderId { get; set; }
+    Order order = new();
+    Complain complain = new();
+    string userId = "";
+    string userName = "";
+    string textWarning = "";
+    bool isWarning = false;
+    async Task ConfirmComplain()
+    {
+        if (complain.reason.Length < 1 && complain.reason.Length > 50)
+        {
+            textWarning = "Điền đầy đủ lý do của bạn và không quá 50 kí tự";
+            isWarning = true;
+        }
+
+        var result = await _orderServices.ComplainAsync(complain);
+        Helper.ShowNotification(_noti, result);
+        _dialog.Close();
+    }
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                userName = user.FindFirst(ClaimTypes.Name).Value;
+                order = await _orderServices.GetIdAsync(orderId);
+                complain.orderid = order.Id;
+                complain.userid = userId;
+                complain.username = userName;
+            }
+            StateHasChanged();
+
+        }
+    }
+}
+

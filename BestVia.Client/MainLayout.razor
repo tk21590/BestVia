@@ -1,0 +1,153 @@
+﻿@using Microsoft.AspNetCore.Http.Extensions;
+@inherits LayoutComponentBase
+@inject NotificationService _noti;
+
+@inject DialogService _dialog
+@attribute [Authorize]
+@inject AuthenticationStateProvider _authenticationStateProvider;
+@inject NavigationManager _navigate
+@inject ISummaryServicesClient _summaryServices
+
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
+
+<RadzenLayout Style="grid-template-columns: auto 1fr auto; grid-template-areas: 'rz-header rz-header rz-header' 'rz-sidebar rz-body rz-right-sidebar'">
+    <RadzenHeader class="rz-background-color-secondary-darker">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+
+            <div class="col-6 d-flex align-items-center">
+                <RadzenSidebarToggle Click="@(() => sidebar5Expanded = !sidebar5Expanded)" />
+                <RadzenLabel Text="ODAYCOBANVIA" />
+            </div>
+            <div class="col-6 d-flex align-items-center justify-content-end">
+                <div class="d-none d-md-inline-flex align-items-center mr-3">
+
+                    <AuthorizeView>
+                        <Authorized>
+                            <RadzenMenu class="rz-background-color-secondary-darker">
+                                <RadzenMenuItem Text="@(context.User?.Identity?.Name)" Icon="account_circle">
+                                    <RadzenMenuItem Click="LogOut" Text="Đăng xuất" Path="buttons" Icon="input"></RadzenMenuItem>
+                                </RadzenMenuItem>
+                            </RadzenMenu>
+                            @*    <RadzenText Text="@context.User?.Identity?.Name"></RadzenText>
+                            <RadzenButton class="m-2" Click="LogOut" Text="Đăng xuất" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined" ButtonType="ButtonType.Button" Size="ButtonSize.Small" />
+                            *@
+                        </Authorized>
+                        <NotAuthorized>
+                            <RadzenButton class="m-2" Text="Đăng nhập" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined" ButtonType="ButtonType.Button" Size="ButtonSize.Small" />
+                            <RadzenButton class="m-2" Text="Đăng kí" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined" ButtonType="ButtonType.Button" Size="ButtonSize.Small" />
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+
+            </div>
+        </RadzenStack>
+    </RadzenHeader>
+    <RadzenSidebar @bind-Expanded="@sidebar5Expanded">
+        <RadzenPanelMenu>
+            <RadzenPanelMenu>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenImage Path="https://www.viainfo.net/wp-content/uploads/2016/12/VIA-Logo.png"
+                                 Style="width: 85px; height: 85px;margin-left:30%"
+                                 class="rz-mt-3 rz-mb-2" />
+                </RadzenStack>
+                <hr />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenImage Path="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRFtmCCXQ1CRqhrCgqONuYChTz9lsJL5Ru1brHzqdoFixY_cUOxIAl9n40FCdtWS_zPSFc&usqp=CAU"
+                                 Style="width: 85px; height: 85px; border-radius: 50%;" />
+                    <RadzenStack Gap="0">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-display-flex rz-mt-2 rz-my-0">Chào mừng</RadzenText>
+                        <RadzenText class="text-primary" TextStyle="TextStyle.Body1"><b>@userInfo.username</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-display-flex rz-mt-2 rz-mb-0">Số dư của bạn</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" class="rz-mb-4 text-success"><b>@Helper.Money_ConvertToString(userInfo.balance)</b></RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+                <hr />
+
+                <AuthorizeView Roles="Admin,SuperMod">
+                    <Authorized>
+                        <RadzenPanelMenuItem Text="ADMIN" Icon="home" Expanded=true>
+                            <RadzenPanelMenuItem Text="Quản lí user" Icon="assignment_ind" Path="/admin/users" />
+                            <RadzenPanelMenuItem Text="Quản lí sản phẩm" Icon="card_travel" Path="/admin/products" />
+                            <RadzenPanelMenuItem Text="Quản lí đơn hàng" Icon="dashboard" Path="/admin/orders" />
+                            <RadzenPanelMenuItem Text="Quản lí via,proxy" Icon="dns" Path="/admin/items" />
+                            <RadzenPanelMenuItem Text="Quản lí key" Icon="assessment" Path="/admin/keys" />
+                            <RadzenPanelMenuItem Text="Quản lí lịch sử" Icon="history" Path="/admin/histories" />
+                        </RadzenPanelMenuItem>
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView>
+                    <Authorized>
+                        <RadzenPanelMenuItem Text="USER" Icon="group_work" Expanded=true>
+                            <RadzenPanelMenuItem Text="Quản lý tài khoản" Icon="account_box" Path="/user/dashboard" />
+                            <RadzenPanelMenuItem Text="Danh sách sản phẩm" Icon="add_shopping_cart" Path="/user/products" />
+                            <RadzenPanelMenuItem Text="Cộng tác viên" Icon="card_giftcard" Path="/user/mods" />
+                            <RadzenPanelMenuItem Text="Đơn hàng của bạn" Icon="line_weight" Path="/user/orders" />
+                            <RadzenPanelMenuItem Text="Đăng xuất" Icon="exit_to_app" Click="@LogOut" />
+                        </RadzenPanelMenuItem>
+
+                    </Authorized>
+                </AuthorizeView>
+            </RadzenPanelMenu>
+        </RadzenPanelMenu>
+        <div class="rz-p-4">
+            BestVIA
+        </div>
+    </RadzenSidebar>
+    <RadzenBody>
+        <ChildContent>
+            <RadzenContentContainer Name="main" class="rz-background-color-secondary-darker">
+                @Body
+            </RadzenContentContainer>
+        </ChildContent>
+    </RadzenBody>
+
+</RadzenLayout>
+
+@code {
+    [CascadingParameter]
+    protected Task<AuthenticationState> AuthStat { get; set; }
+
+    bool sidebar5Expanded = true;
+    UserInfo userInfo = new();
+    string userId = "";
+    protected override async Task OnParametersSetAsync()
+    {
+        // Thực hiện việc cập nhật thông tin tại đây
+        if (!string.IsNullOrEmpty(userInfo.username))
+        {
+            userInfo = await _summaryServices.LayThongTinUser(userId, false);
+        }
+
+    }
+    protected async override Task OnInitializedAsync()
+    {
+
+        string relativePath = _navigate.ToBaseRelativePath(_navigate.Uri);
+        if (!string.IsNullOrEmpty(relativePath) && relativePath != "login" && relativePath != "register")
+        {
+            var user = (await AuthStat).User;
+
+            if (!user.Identity.IsAuthenticated || user == null)
+            {
+
+                _navigate.NavigateTo($"/", true);
+                //Helper.ShowNotification(NotificationService, NotificationSeverity.Error, "Vui lòng đăng nhập!");
+            }
+            else
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                userInfo = await _summaryServices.LayThongTinUser(userId, false);
+
+            }
+        }
+
+    }
+    async Task LogOut()
+    {
+        await ((CustomAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsLogOutAsync();
+        _navigate.NavigateTo("/login", false);
+    }
+}

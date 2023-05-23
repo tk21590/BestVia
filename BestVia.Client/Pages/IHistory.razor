@@ -1,0 +1,213 @@
+﻿@page "/admin/histories"
+
+
+@inject IProductServicesClient _productServices;
+@inject IUserServicesClient _userServices;
+@inject ISummaryServicesClient _summaryServices;
+@inject IViaServicesClient _viaServices;
+
+@inject NotificationService _noti;
+@inject AuthenticationStateProvider _authenProvider
+@inject IBlazorDownloadFileService _fileDownload
+
+@inject DialogService _dialog
+
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+<RadzenContent Container="main">
+    <ChildContent>
+
+        <div class="row">
+            <div class="col-lg-12">
+
+                <div class="row">
+                    <div class="col-lg-2 col-md-4 col-sm-4 m-3">
+                        <RadzenButton @onclick="()=>SearchTime()" ButtonStyle="ButtonStyle.Secondary"
+                                      ButtonType="ButtonType.Button" Icon="search" Shade="Shade.Lighter" style="position: static; width: 100%" Text="Tìm theo ngày">
+                        </RadzenButton>
+                    </div>
+                    <div class="col-lg-8 col-sm-4 col-sm-4 m-3">
+                        <RadzenDatePicker @bind-Value=@dfrom TimeOnly="false" DateFormat="dd/MM/yyyy">
+                            <FooterTemplate>
+                                <RadzenButton Click=@(args =>dfrom = Core.Date_GetStartTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                            </FooterTemplate>
+                        </RadzenDatePicker>
+
+                        <RadzenDatePicker @bind-Value=@dto TimeOnly="false" DateFormat="dd/MM/yyyy">
+                            <FooterTemplate>
+                                <RadzenButton Click=@(args => dto = Core.Date_GetEndTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                            </FooterTemplate>
+                        </RadzenDatePicker>
+                    </div>
+                    <div class="col-lg-2 col-sm-4 col-sm-4 m-3">
+
+                        <RadzenButton Click=@((args) => ConfirmDelete(true))
+                                      ButtonStyle="ButtonStyle.Danger"
+                                      ButtonType="ButtonType.Reset" Icon="delete" Shade="Shade.Darker" style="position: static; width: 100%" Text="Xóa lịch sử">
+                        </RadzenButton>
+
+                    </div>
+                </div>
+
+                <RadzenCard>
+
+                    <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                    LogicalFilterOperator="LogicalFilterOperator.Or"
+                                    AllowSorting="true" PageSize="10" AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                    Data="@histories"
+                                    TItem="History">
+                        <HeaderTemplate>
+                            <div class="row">
+                                <RadzenStack Orientation="Orientation.Horizontal">
+                                    <RadzenBadge class="m-3 p-2" Style="font-size:20px" Shade="Shade.Lighter" BadgeStyle="BadgeStyle.Secondary"
+                                                 Text="Danh sách lịch sử hoạt động">
+
+                                    </RadzenBadge>
+                                </RadzenStack>
+                            </div>
+                            <div class="row m-3">
+                                <RadzenAutoComplete Change="@FindUserName" @bind-Value=@userName Data=@list_users
+                                                    TextProperty="UserName" LoadData=@OnLoadUserName Style="width: 13rem" />
+                            </div>
+
+                        </HeaderTemplate>
+                        <Columns>
+                            <RadzenDataGridColumn TItem="History" Property="Id" Filterable="true" Title="ID" Frozen="false" Width="50px" TextAlign="TextAlign.Left" />
+                            <RadzenDataGridColumn TItem="History" Property="Username" Filterable="true" Title="User" Frozen="false" Width="80px" TextAlign="TextAlign.Left" />
+                            <RadzenDataGridColumn TItem="History" Property="HistoryType.Name" Filterable="true" Title="Phân loại" Frozen="false" Width="60px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.HistoryTypeId)" class="m-1" Text="@item.HistoryType.Name" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="History" Property="Header" Filterable="true" Title="Thông tin" Frozen="false" Width="200px" TextAlign="TextAlign.Left" />
+                            <RadzenDataGridColumn TItem="History" Property="Content" Filterable="true" Title="Nội dung" Frozen="false" Width="200px" TextAlign="TextAlign.Left" />
+                            <RadzenDataGridColumn TItem="History" Property="Value" Filterable="true" Title="Giá" Width="80px">
+                                <Template Context="item">
+                                    @String.Format("{0}",Helper.Money_ConvertToString(item.Value))
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="History" Filterable="true" Property="DateCreated" Title="Ngày tạo" Width="100px">
+                                <Template Context="item">
+                                    @String.Format("{0}",Helper.Date_StringTimeConvert(item.DateCreated))
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenCard>
+            </div>
+
+        </div>
+
+    </ChildContent>
+</RadzenContent>
+@code {
+
+
+    List<History> histories = new();
+    List<UserView> list_users = new();
+
+    SearchModel searchModel = new();
+    SearchModel deleteModel = new();
+    string userName = "";
+    string userId = "";
+    DateTime dfrom = DateTime.Today.AddDays(-30);
+    DateTime dto = DateTime.Today.AddDays(1).Date.AddTicks(-1).AddSeconds(-1);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+
+                histories = await _summaryServices.DanhSachLichSuToanBo(new SearchModel
+                    {
+                        from = Core.Date_DateTimeToUnitUnixTimestamp(Core.Date_GetFirstDayInMount()),
+                        to = Core.Date_GetTimeNowInt(),
+                        userorderid = "",
+                        historyid = 0
+                    });
+            }
+            StateHasChanged();
+        }
+    }
+    public async Task ConfirmDelete(bool confirm = true)
+    {
+        if (confirm)
+        {
+            var confirmationResult = await _dialog.Confirm("Có chắc muốn xóa lịch sử ?", "Xóa lịch sử", new ConfirmOptions() { OkButtonText = "Có", CancelButtonText = "Không" });
+            if (confirmationResult == true)
+            {
+                await DeleteTime();
+            }
+            else
+            {
+                _dialog.Close();
+            }
+        }
+
+    }
+    async Task OnLoadUserName(LoadDataArgs args)
+    {
+        list_users = await _userServices.SearchNameAsync(args.Filter);
+    }
+    async Task DeleteTime()
+    {
+
+        deleteModel.from = Core.Date_DateTimeToUnitUnixTimestamp(dfrom);
+        deleteModel.to = Core.Date_DateTimeToUnitUnixTimestamp(dto);
+        var result = await _summaryServices.XoaLichSu(deleteModel);
+        Helper.ShowNotification(_noti, result);
+
+    }
+    async Task FindUserName()
+    {
+        var userFind = list_users.FirstOrDefault(c => c.UserName == userName);
+        if (userFind != null)
+        {
+            var user = await _userServices.GetIdAsync(userFind.Id);
+            if (user != null)
+            {
+                await SearchTime(user.Id);
+
+            }
+            else
+            {
+                _noti.Notify(NotificationSeverity.Error, "Lỗi", "Tìm kiếm user chỉ định lỗi!");
+            }
+        }
+
+    }
+    private async Task Export(int orderid)
+    {
+
+        string path = "FileOrder_" + Guid.NewGuid().ToString() + ".txt";
+        var list_via = await _viaServices.ListOrderIdAsync(orderid);
+        if (list_via.Count > 0)
+        {
+            string data = string.Join("\r\n", list_via.Select(via => $"{via.Username}|{via.Password}|{via.UID}|{via.Mail}|{via.PasswordMail}|{via.TwoFa}"));
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            await _fileDownload.DownloadFileAsync(path, bytes);
+        }
+
+    }
+    async Task SearchTime(string userId = "")
+    {
+        searchModel.userorderid = userId;
+        searchModel.historyid = 0;
+
+        searchModel.from = Core.Date_DateTimeToUnitUnixTimestamp(dfrom);
+        searchModel.to = Core.Date_DateTimeToUnitUnixTimestamp(dto);
+        histories = await _summaryServices.DanhSachLichSuToanBo(searchModel);
+        StateHasChanged();
+
+    }
+
+}

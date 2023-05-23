@@ -1,0 +1,198 @@
+﻿@page "/user/orders"
+
+@inject ISummaryServicesClient _summaryServices;
+@inject AuthenticationStateProvider _authenProvider
+@inject IBlazorDownloadFileService _fileDownload
+@inject IViaServicesClient _viaServices;
+@inject IProxyServicesClient _proxyServices;
+@inject IDescriptionServicesClient _desServices;
+
+@inject IOrderServicesClient _orderServices;
+@inject NotificationService _noti;
+@inject DialogService _dialog
+
+@attribute [Authorize]
+
+<RadzenContent Container="main">
+    <ChildContent>
+        <RadzenCard Class="rz-border-radius-3 ml-4 mr-4">
+            <div class="row">
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <CardAdmin Text="Đơn hoàn thành" BGColor="bg-c-blue" Description="Tổng đơn hàng đã hoàn thành của bạn" Icon="fa fa-cart-plus" Value="@orderStatistics.count_order_success" />
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <CardAdmin Text="Đơn chưa hoàn thành" BGColor="bg-c-green" Description="Tổng đơn hàng chưa hoàn thành của bạn" Icon="fa fa-cart-arrow-down " Value="@orderStatistics.count_order_not_success" />
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <CardAdmin Text="Toàn bộ đơn" BGColor="bg-c-pink" Description="Tổng toàn bộ đơn hàng của bạn" Icon="fa fa-shopping-cart" Value="@orderStatistics.total_order" />
+                </div>
+            </div>
+        </RadzenCard>
+        <RadzenCard Class="rz-border-radius-3 m-4 rz-border-success">
+            <div>@(new MarkupString(description.Content))</div>
+        </RadzenCard>
+        <RadzenCard Class="rz-border-radius-3 m-4">
+            <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                            LogicalFilterOperator="LogicalFilterOperator.Or"
+                            AllowSorting="true" PageSize="10" AllowPaging="true"
+                            PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                            Data="@list_order"
+                            TItem="Order">
+                <HeaderTemplate>
+                    <div class="row">
+                        <RadzenStack Orientation="Orientation.Horizontal">
+                            <RadzenBadge class="m-2 p-2" Style="font-size:18px" Shade="Shade.Lighter"
+                                         BadgeStyle="BadgeStyle.Secondary" Text="Danh sách đơn hàng của bạn" />
+
+                        </RadzenStack>
+                        <RadzenText TextStyle="TextStyle.Caption" class="text-danger m-2 p-2 font-weight-bold" Text="Mỗi đơn hàng có 48 giờ khiếu nại, quá thời gian sẽ không hỗ trợ giải quyết .Click vào nút [Khiếu Nại] cạnh mỗi đơn hàng để báo vấn đề của bạn" />
+
+                    </div>
+
+                </HeaderTemplate>
+                <Columns>
+                    <RadzenDataGridColumn TItem="Order" Property="Id" Filterable="true" Title="Id" Frozen="false" Width="50px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="Order" Property="Product.Name" Filterable="true" Title="Tên" Frozen="false" Width="120px" TextAlign="TextAlign.Left">
+                        <Template Context="item">
+                            @item.Product.Name
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Order" Property="Quantity" Filterable="true" Title="Số lượng" Frozen="false" Width="40px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="Order" Property="Product.Price" Filterable="true" Title="Giá" Frozen="false" Width="40px" TextAlign="TextAlign.Center">
+                        <Template Context="item">
+                            @String.Format("{0}",Helper.Money_ConvertToString(item.Product.Price))
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Order" Property="TotalPrice" Filterable="true" Title="Tổng" Frozen="false" Width="50px" TextAlign="TextAlign.Center">
+                        <Template Context="item">
+                            @String.Format("{0}",Helper.Money_ConvertToString(item.TotalPrice))
+                        </Template>
+                        <FooterTemplate>
+                            Tổng :  <b>@String.Format("{0}",Helper.Money_ConvertToString(list_order.Sum(c=>c.TotalPrice)))</b>
+                        </FooterTemplate>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Order" Property="DateOrder" Filterable="false" Title="Ngày đặt" Frozen="false" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="item">
+                            @(Helper.Date_StringTimeConvert(item.DateOrder) + " " + String.Format("({0})", Core.GetTimeMinify(item.DateOrder)))
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Order" Property="Status.Name" Filterable="false" Title="Status" Frozen="false" Width="50px" TextAlign="TextAlign.Left">
+                        <Template Context="item">
+                            <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.StatusId)" class="m-1" Text="@item.Status.Name" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Order" Property="Id" Filterable="false" Title="Tải về" Width="30px">
+                        <Template Context="item">
+                            @if (item.Product.ProductType.CategoryId == 3 || item.Product.ProductType.CategoryId == 1)
+                            {
+                                <RadzenButton Click=@(args => Export(item.Id,item.Product.ProductType.CategoryId)) Icon="get_app" ButtonStyle="ButtonStyle.Primary" />
+
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Order" Context="item" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="50px">
+                        <Template Context="item">
+
+                            if (item.Product.ProductType.CategoryId == 4) //Là box
+                            {
+                            if (!Core.Date_CheckTime(item.DateOrder, 7))
+                            {
+                            <RadzenButton Click=@(()=>OpenDialogComplain(item.Id.ToString()))
+                                          Icon="feedback" ButtonStyle="ButtonStyle.Danger" Text="Khiếu nại"
+                                          Variant="Variant.Flat" Size="ButtonSize.Small">
+                            </RadzenButton>
+
+                            }
+                            }
+                            else
+                            {
+                            if (!Core.Date_CheckTime(item.DateOrder, 2))
+                            {
+                            <RadzenButton Click=@(()=>OpenDialogComplain(item.Id.ToString()))
+                                          Icon="feedback" ButtonStyle="ButtonStyle.Danger" Text="Khiếu nại"
+                                          Variant="Variant.Flat" Size="ButtonSize.Small">
+                            </RadzenButton>
+
+                            }
+                            }
+
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+
+
+    </ChildContent>
+</RadzenContent>
+@code {
+
+    OrderStatistics orderStatistics = new();
+    string userId = "";
+    List<Order> list_order = new();
+    Description description = new();
+
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                list_order = await _orderServices.ListIdAsync(userId);
+                description = await _desServices.GetHeaderAsync("Chính sách bảo hành");
+
+                orderStatistics = await _summaryServices.TongKetDoanhThu(new SearchModel
+                    {
+                        from = Core.Date_DateTimeToUnitUnixTimestamp(Core.Date_GetFirstDayInMount()),
+                        to = Core.Date_GetTimeNowInt(),
+                        userorderid = userId
+                    });
+
+
+
+            }
+
+            StateHasChanged();
+        }
+
+    }
+    private async Task Export(int orderid, int cateId)
+    {
+        if (cateId == 1)
+        {
+            string path = "FileProxyOrder_" + Guid.NewGuid().ToString() + ".txt";
+
+            var list_proxy = await _proxyServices.ListOrderIdAsync(orderid);
+            if (list_proxy.Count > 0)
+            {
+                string data = string.Join("\n", list_proxy.Select(proxy => $"{proxy.Name}"));
+                byte[] bytes = Encoding.UTF8.GetBytes(data);
+                await _fileDownload.DownloadFileAsync(path, bytes);
+            }
+        }
+        else if (cateId == 3)
+        {
+            string path = "FileViaOrder_" + Guid.NewGuid().ToString() + ".txt";
+            var list_via = await _viaServices.ListOrderIdAsync(orderid);
+            if (list_via.Count > 0)
+            {
+                string data = string.Join("\n", list_via.Select(via => $"{via.Username}|{via.Password}|{via.UID}|{via.Mail}|{via.PasswordMail}|{via.TwoFa}"));
+                byte[] bytes = Encoding.UTF8.GetBytes(data);
+                await _fileDownload.DownloadFileAsync(path, bytes);
+            }
+        }
+
+    }
+    async Task OpenDialogComplain(string orderId)
+    {
+        await _dialog.OpenAsync<ComplainDialog>($"Khiếu nại đơn hàng",
+                new Dictionary<string, object>() { { "orderId", orderId } },
+                new DialogOptions() { Width = "440px", Height = "360px", Resizable = true, Draggable = true });
+    }
+
+}

@@ -1,0 +1,85 @@
+﻿@inject DialogService _dialog
+@inject AuthenticationStateProvider _authenProvider
+
+<RadzenCard Style="width: 340px;height:500px;position:relative" Class="rz-border-radius-3 rz-shadow-7 mb-4 ">
+    <RadzenBadge Style="font-size:14px;position: absolute;top: 0;  left: 0;" class="m-3 p-2" BadgeStyle="BadgeStyle.Primary"
+                 Text="@Helper.Money_ConvertToString(Product.Price)" IsPill="true" />
+
+    <RadzenBadge Style="font-size:12px;position: absolute;top: 0;  right: 0;" class="m-3 p-2" BadgeStyle="BadgeStyle.Success"
+                 Text="@("Bảo hành "+ Product.Guarantee +" Ngày")" IsPill="true" />
+
+
+    <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center" Gap="0rem">
+        <RadzenImage Path="@Product.PathImage"
+                     Class="" Style="width: 100%; height: 40%;"></RadzenImage>
+        <RadzenText TextStyle="TextStyle.H6" class="rz-color-primary-light mt-2"><strong>@(Product.Name)</strong></RadzenText>
+    </RadzenStack>
+    <RadzenRow Gap="0">
+        <RadzenColumn Size="6">
+
+            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-primary-light rz-display-flex rz-mt-2 rz-mb-0">CPU</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2"><b>@(Product.CPU)</b></RadzenText>
+            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-primary-light rz-display-flex rz-mt-2 rz-mb-0">Hoa hồng</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2"><b>@(Helper.Money_ConvertToString(Product.PriceIncome))</b></RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="6">
+            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-primary-light rz-display-flex rz-mt-2 rz-mb-0">RAM</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2"><b>@(Product.Ram)</b></RadzenText>
+            <RadzenText TextStyle="TextStyle.Overline" class="rz-color-primary-light rz-display-flex rz-mt-2 rz-mb-0">Model</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2"><b>@(Product.Model)</b></RadzenText>
+        </RadzenColumn>
+    </RadzenRow>
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1" class="mt-3 mr-2">
+        <RadzenButton Click="@OpenDialogOrder" Size="ButtonSize.Medium" Icon="gavel" Text="@("Đặt cọc "+price_box_order)" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenStack>
+</RadzenCard>
+
+
+@code {
+    [Parameter]
+    public Product Product { get; set; }
+    string price_income_forUser = "";
+    string userId = "";
+    string userRole = "";
+    string price_box_order = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                userRole = user.FindFirst(ClaimTypes.Role).Value;
+            }
+            price_box_order = Helper.Money_ConvertToString(Product.Price / 10);
+
+          
+
+            
+
+            if (userRole == "Customer")
+            {
+                price_income_forUser = Helper.Money_ConvertToString(Product.PriceIncome);
+
+            }
+            else
+            {
+                price_income_forUser = Helper.Money_ConvertToString(Product.PriceIncomeMod);
+
+            }
+            
+            
+            StateHasChanged();
+        }
+    }
+
+    async Task OpenDialogOrder()
+    {
+        await _dialog.OpenAsync<AddOrderDialog>($"Đặt cọc đơn hàng box (Giá {price_box_order} VNĐ)!",
+                      new Dictionary<string, object>() { { "productId", Product.Id.ToString() } },
+                      new DialogOptions() { Width = "550px", Height = "500px", Resizable = true, Draggable = true });
+    }
+}

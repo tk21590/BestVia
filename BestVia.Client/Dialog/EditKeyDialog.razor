@@ -1,0 +1,145 @@
+﻿@page "/dialogKey/{keyId}"
+@inject DialogService dialogService
+@inject IKeyServicesClient _keyServices;
+@inject NotificationService _noti;
+
+
+
+
+@*@attribute [Authorize(Roles = "Admin,SuperMod")]
+*@
+
+<div class="row">
+    <div class="col-12">
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="User" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@key.UserName" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="ID" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@key.KeyId" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+
+        </div>
+        <div class="row m-3">
+
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="Tên Key" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@key.KeyName" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Ngày tạo" Style="width: 100%;" Variant="Variant.Text" active>
+                    <RadzenTextBox Value="@Helper.Date_StringTimeConvert(key.DateCreated)" Style="width: 100%;" Disabled="true" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Ngày hết hạn" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox Value="@Helper.Date_StringTimeConvert(key.DateExpired)" Style="width: 100%;" Disabled="true" />
+                </RadzenFormField>
+                <RadzenText class="text-danger" Visible="@isShowTime" Text="@Helper.Date_StringTimeConvert(new_date_expired)" />
+
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Hoạt động" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenSelectBar @bind-Value=@key.IsAvaiable TValue="bool" class="m-2">
+                        <Items>
+                            <RadzenSelectBarItem Text="Mở" Value="true" />
+                            <RadzenSelectBarItem Text="Tắt" Value="false" />
+                        </Items>
+                    </RadzenSelectBar>
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-md-12 mt-2">
+                <RadzenFormField Text="Thêm ngày" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="int" 
+                                   Change="@AddDay" TValue="int" @bind-Value="@addDay" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="edit" Click="@EditKey" Text="OK" Style="width: 140px" Class="m-4" />
+            <RadzenButton Click="(()=> dialogService.Close())" Icon="close" Style="width: 140px" ButtonStyle=" ButtonStyle.Light" Text="Cancel" Class="m-4" />
+
+        </div>
+
+
+
+    </div>
+
+</div>
+
+
+@code {
+    [Parameter]
+    public string keyId { get; set; }
+
+    Key key = new();
+    int addDay = 0;
+    int new_date_expired = 0;
+    bool isShowTime;
+    async Task AddDay()
+    {
+        var date_expired = Core.Date_UnixTimestampToDateTime(key.DateExpired);
+        new_date_expired = Core.Date_DateTimeToUnitUnixTimestamp(date_expired.AddDays(addDay));
+        if (new_date_expired > 0)
+        {
+            isShowTime = true;
+        }
+        else
+        {
+            isShowTime = false;
+        }
+    }
+
+    async Task EditKey()
+    {
+        key.DateExpired = new_date_expired;
+        if (key.Id > 0 && !string.IsNullOrEmpty(keyId))
+        {
+            var result = await _keyServices.EditAsync(key);
+            Helper.ShowNotification(_noti, result);
+            dialogService.Close();
+
+        }
+        else
+        {
+            var result = await _keyServices.AddAsync(key);
+            Helper.ShowNotification(_noti, result);
+            dialogService.Close();
+        }
+
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (keyId != "0")
+            {
+                key = await _keyServices.GetIdAsync(keyId);
+            }
+            else
+            {
+                key.KeyId = Guid.NewGuid().ToString();
+                key.DateExpired = key.DateCreated = Core.Date_GetTimeNowInt();
+            }
+            StateHasChanged();
+
+        }
+    }
+
+}
+

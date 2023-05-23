@@ -1,0 +1,135 @@
+﻿@page "/dialogOrder/{orderId}"
+@inject DialogService _dialog;
+@inject IOrderServicesClient _orderServices;
+@inject NotificationService _noti;
+
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="row m-3">
+            <RadzenText TextAlign="TextAlign.Center" TextStyle="TextStyle.H6" Class="rz-color-primary-light"><strong>@nameOrder</strong></RadzenText>
+        </div>
+       
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="Khách đặt" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@order.UserOrderName" Style="width: 100%;" Disabled=true />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Số lượng" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric @bind-Value="@order.Quantity" Style="width: 100%;" Format="###,#" Disabled=true />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Trạng thái đơn" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenDropDown TValue="int" @bind-Value="@order.StatusId" AllowFiltering="true"
+                                    Data="@list_status" TextProperty="Name" ValueProperty="Id" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Tên người đặt" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@order.User" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <RadzenFormField Text="Sđt người đặt" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@order.Phone" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="Địa chỉ người đặt" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@order.Address" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="Mã vận đơn" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@order.BillOrder" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-6 col-md-12">
+                <RadzenBadge BadgeStyle="@(order.isComplain ? BadgeStyle.Secondary : BadgeStyle.Primary)"
+                             IsPill=true Text="@(order.isComplain ?"Đang khiếu nại": "Không khiếu nại" )" />
+            </div>
+
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Visible=@(order.isComplain) Text="Lý do khiếu nại" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@order.Reason" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-12 col-md-12">
+                <RadzenFormField Text="Ngày tạo đơn" Style="width: 100%;" Variant="Variant.Text" active>
+                    <RadzenTextBox Value="@(Helper.Date_StringTimeConvert(order.DateOrder) +" - ("+ Core.GetTimeMinify(order.DateOrder)+")")" Style="width: 100%;" Disabled="true" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="edit" Click="@EditOrder" Text="OK" Style="width: 190px" Class="m-4" />
+            <RadzenButton Click="(()=> _dialog.Close())" Icon="close" Style="width: 190px" ButtonStyle=" ButtonStyle.Light" Text="Cancel" Class="m-4" />
+
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public string orderId { get; set; }
+
+
+    Order order = new Order();
+    string nameOrder = "";
+    List<Status> list_status = new();
+
+
+    async Task EditOrder()
+    {
+
+        var result = await _orderServices.EditAsync(order);
+        Helper.ShowNotification(_noti, result);
+
+        StateHasChanged();
+        _dialog.Close();
+
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            string[] Status = { "HOÀN THÀNH", "LỖI", "HẾT HẠN", "ĐANG CHỜ", "ĐANG XỬ LÝ", "ĐANG CHUẨN BỊ", "ĐÃ GIAO HÀNG" };
+            for (int i = 1; i <= Status.Length; i++)
+            {
+                list_status.Add(new Models.Status { Id = i, Name = Status[i - 1] });
+            }
+            order = await _orderServices.GetIdAsync(orderId);
+            nameOrder = order.Product.Name;
+            StateHasChanged();
+
+        }
+    }
+
+}
+

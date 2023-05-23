@@ -1,0 +1,473 @@
+﻿@page "/dialogAddProduct/{productId}"
+@using Microsoft.AspNetCore.Http;
+@inject DialogService dialogService
+@inject IUserServicesClient _userServices;
+@inject IProductServicesClient _productServices;
+@inject IProductTypeServicesClient _ptypeServices;
+
+@inject NotificationService _noti;
+@inject IFileServicesClient _fileServices
+@inject AuthenticationStateProvider _authenProvider
+
+@attribute [Authorize(Roles = "Admin,SuperMod")]
+
+
+<div class="row">
+    <div class="col-12">
+        <div class="row m-3">
+            <div class="col-lg-6 col-sm-12">
+                <RadzenFormField Text="Tên sản phẩm" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@product.Name" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-sm-12">
+                <RadzenFormField Text="Tên nhóm" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenDropDown TValue="int" Change="OnChangeSetting" @bind-Value="product.ProductTypeId" Placeholder="Chọn loại" AllowFiltering="true" Data="@(list_ptype)" TextProperty="Name" ValueProperty="Id" />
+                </RadzenFormField>
+            </div>
+        </div>
+        <div class="row m-3">
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <RadzenFormField Text="Giá" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="long" @bind-Value="@product.Price" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <RadzenFormField Text="Hoa hồng (User)" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="long" @bind-Value="@product.PriceIncome" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <RadzenFormField Text="Hoa hồng (Mod)" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="long" @bind-Value="@product.PriceIncomeMod" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+
+        </div>
+        <div class="row m-3">
+
+            <div class="col-lg-6 col-md-6 col-sm-12">
+                <RadzenFormField Text="Số lượng" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="int" @bind-Value="@product.Amount" Format="###,#" Style="width: 100%;" Disabled=@isDisableAmount />
+                </RadzenFormField>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-12">
+                <RadzenFormField Text="Bảo hành (Ngày)" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenNumeric TValue="int" @bind-Value="@product.Guarantee" Format="###,#" Style="width: 100%;" />
+                </RadzenFormField>
+            </div>
+        </div>
+        @if (categoryId == 4) //Là BOX
+        {
+            <div class="row m-3">
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <RadzenFormField Text="RAM" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenTextBox @bind-Value="@product.Ram" Style="width: 100%;" />
+                    </RadzenFormField>
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <RadzenFormField Text="CPU" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenTextBox @bind-Value="@product.CPU" Style="width: 100%;" />
+                    </RadzenFormField>
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <RadzenFormField Text="Model" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenTextBox @bind-Value="@product.Model" Style="width: 100%;" />
+                    </RadzenFormField>
+                </div>
+            </div>
+        }
+
+        @if (categoryId == 3) //Là VIA
+        {
+            <div class="row m-3">
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <RadzenFormField Text="2FA" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenSelectBar @bind-Value=@product.TwoFA TValue="bool" class="m-2">
+                            <Items>
+                                <RadzenSelectBarItem Text="Có" Value="true" />
+                                <RadzenSelectBarItem Text="Không" Value="false" />
+                            </Items>
+                        </RadzenSelectBar>
+                    </RadzenFormField>
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <RadzenFormField Text="Back Up" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenSelectBar @bind-Value=@product.Backup TValue="bool" class="m-2">
+                            <Items>
+                                <RadzenSelectBarItem Text="Có" Value="true" />
+                                <RadzenSelectBarItem Text="Không" Value="false" />
+                            </Items>
+                        </RadzenSelectBar>
+                    </RadzenFormField>
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+
+                    <RadzenFormField Text="Change Info" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenSelectBar @bind-Value=@product.Change TValue="bool" class="m-2">
+                            <Items>
+                                <RadzenSelectBarItem Text="Có" Value="true" />
+                                <RadzenSelectBarItem Text="Không" Value="false" />
+                            </Items>
+                        </RadzenSelectBar>
+                    </RadzenFormField>
+                </div>
+
+            </div>
+            <div class="row m-3">
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    <RadzenFormField Text="Bạn bè" Style="width: 100%;" Variant="Variant.Text" class="mt-3">
+                        <RadzenTextBox @bind-Value="@product.Friend" Style="width: 100%;" />
+                    </RadzenFormField>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    <RadzenFormField Text="Năm tạo" Style="width: 100%;" Variant="Variant.Text" class="mt-3">
+                        <RadzenTextBox @bind-Value="@product.Date" Style="width: 100%;" />
+                    </RadzenFormField>
+                </div>
+
+
+            </div>
+         
+            <div class="row m-3">
+                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Thêm file txt</RadzenText>
+                <RadzenFileInput Change="OnLoadFile" Accept=".txt" @bind-Value=@base64Data TValue="string" class="w-100" />
+                <RadzenText class="text-primary" Text="@warning" TextStyle="TextStyle.Body2" Style="font-size:14px" TagName="TagName.P"></RadzenText>
+
+                <RadzenText class="text-danger font-weight-bold" TextAlign="TextAlign.Center"
+                        Text="Vui lòng nhập đúng cấu hình file txt : [User]|[Password]|[UID]|[2FA]|[Mail]|[PassMail]"
+                        TextStyle="TextStyle.Caption" Style="font-size:14px" TagName="TagName.P"></RadzenText>
+
+            </div>
+        }
+
+        @if (categoryId == 2) //Là Tool
+        {
+            <div class="row m-3">
+                <RadzenStack Orientation="Orientation.Vertical">
+                    <RadzenText Text="Cấu hình tool" TagName="TagName.P" TextStyle="TextStyle.Overline" TextAlign="TextAlign.Left"></RadzenText>
+                    <RadzenHtmlEditor @bind-Value=@product.Setting style="height: 200px;" />
+                </RadzenStack>
+            </div>
+        }
+        @if (categoryId == 1) //Là Proxy
+        {
+            <div class="row m-3">
+                <div class="col-lg-8 col-md-6 col-sm-12">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Thêm file txt</RadzenText>
+                    <RadzenFileInput Change="OnLoadFile" Accept=".txt" @bind-Value=@base64Data TValue="string" class="w-100" />
+                    <RadzenText class="text-primary" Text="@warning" TextStyle="TextStyle.Body2" Style="font-size:14px" TagName="TagName.P"></RadzenText>
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <RadzenFormField Text="Combo đặt hàng" Style="width: 100%;" Variant="Variant.Text">
+                        <RadzenNumeric class="mt-4" TValue="int" @bind-Value="@product.Combo" Format="###,#" Style="width: 100%;" />
+                    </RadzenFormField>
+                </div>
+            </div>
+            <div class="row m-3">
+
+                <RadzenText class="text-danger font-weight-bold" TextAlign="TextAlign.Center"
+                        Text="Vui lòng nhập đúng cấu hình file txt : [IP]:[PORT]"
+                        TextStyle="TextStyle.Caption" Style="font-size:14px" TagName="TagName.P"></RadzenText>
+
+            </div>
+        }
+        <div class="row m-3">
+            <div class="col-12">
+                <RadzenFormField Text="Đường dẫn hình ảnh (https://...)" Style="width: 100%;" Variant="Variant.Text">
+                    <RadzenTextBox @bind-Value="@product.PathImage" Style="width: 100%;" />
+                </RadzenFormField>
+
+            </div>
+        </div>
+        <div class="row m-3">
+            <RadzenStack AlignItems="AlignItems.Center" Orientation="Orientation.Horizontal">
+                <RadzenButton Visible=@(!isUpdated) IsBusy=@isloading ButtonStyle="ButtonStyle.Primary" Icon="edit" Click="@AddProduct" Text="Thêm" Style="width: 200px" Class="m-4" />
+                <RadzenButton Visible=@isUpdated IsBusy=@isloading ButtonStyle="ButtonStyle.Primary" Icon="edit" Click="@UpdateProduct" Text="Cập nhật" Style="width: 200px" Class="m-4" />
+                <RadzenButton IsBusy=@isloading Click="(()=> dialogService.Close())" Icon="close" Style="width: 200px" ButtonStyle=" ButtonStyle.Light" Text="Cancel" Class="m-4" />
+
+            </RadzenStack>
+
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public int productId { get; set; }
+    public string userId { get; set; }
+    public string userName { get; set; }
+    Product product = null;
+    List<ProductType> list_ptype = new();
+    List<Via> list_via_add = new();
+    List<Proxy> list_proxy_add = new();
+
+    public string base64Data { get; set; }
+    public string warning;
+    bool isloading = false;
+    bool isUpdated = false;
+    bool isDisableAmount;
+    int categoryId;
+
+    async Task UpdateProduct()
+    {
+        if (categoryId == 3 && list_via_add.Count > 0)
+        {
+
+            product.list_via = list_via_add;
+
+        }
+
+        if (categoryId == 1 && list_proxy_add.Count > 0)
+        {
+
+            product.list_proxy = list_proxy_add;
+
+
+        }
+        var result = await _productServices.EditAsync(product);
+        Helper.ShowNotification(_noti, result);
+        dialogService.Close();
+
+        StateHasChanged();
+
+    }
+    async Task AddProduct()
+    {
+        if (categoryId == 3)
+        {
+            if (list_via_add.Count > 0)
+            {
+                product.list_via = list_via_add;
+            }
+            else
+            {
+                warning = "Chưa thêm danh sách file account via !";
+                return;
+            }
+        }
+
+        if (categoryId == 1)
+        {
+            if (list_proxy_add.Count > 0)
+            {
+                product.list_proxy = list_proxy_add;
+            }
+            else
+            {
+                warning = "Chưa thêm danh sách file proxy !";
+                return;
+            }
+        }
+
+
+        product.Userid = userId;
+        product.Username = userName;
+        var result = await _productServices.AddAsync(product);
+        Helper.ShowNotification(_noti, result);
+        dialogService.Close();
+        StateHasChanged();
+
+    }
+    void OnLoadFile()
+    {
+        try
+        {
+            //if (categoryId == 1) //TOOL
+            //{
+            //    list_proxy_add.Clear();
+            //    for (int i = 0; i < 30; i++)
+            //    {
+            //        var proxy = new Proxy
+            //            {
+
+            //                IsSold = false,
+            //                ProductId = product.Id,
+            //                OrderId = 1,
+            //                Userid = "",
+            //                Username = "",
+            //                Name = $"{Core.RandomNumberString(3)}.{Core.RandomNumberString(3)}.{Core.RandomNumberString(3)}.{Core.RandomNumberString(2)}:{Core.RandomNumberString(4)}"
+            //            };
+            //        list_proxy_add.Add(proxy);
+            //    }
+            //    warning = $"Thêm {list_proxy_add.Count} proxy hợp lệ";
+
+            //}
+            //if (categoryId == 3) //VIa
+            //{
+            //    list_via_add.Clear();
+            //    for (int i = 0; i < Core.RandomNumber(20, 50); i++)
+            //    {
+            //        var via = new Via
+            //            {
+            //                Cookie = "Cookie_" + Core.RandomToken(7),
+            //                IsSold = false,
+            //                Mail = "Mail_" + Core.RandomToken(7) + "@gmail.com",
+            //                PasswordMail = Core.RandomToken(7).ToLower(),
+            //                Password = Core.RandomToken(12).ToLower(),
+            //                UID = Core.RandomNumberString(15),
+            //                TwoFa = Guid.NewGuid().ToString().ToLower(),
+            //                User = Core.RandomToken(7).ToLower(),
+            //                ProductId = product.Id,
+            //                Userid = "",
+            //                Username = "",
+            //                OrderId = 1,
+
+            //            };
+            //        list_via_add.Add(via);
+            //    }
+            //    warning = $"Thêm {list_via_add.Count} proxy hợp lệ";
+
+            //}
+            var dataSplit = base64Data.Split(',');
+            var data = Core.DecodeFromBase64(dataSplit[1]);
+            var list_data = data.Split('\n').ToList();
+            list_proxy_add.Clear();
+            list_via_add.Clear();
+            for (int i = 0; i < list_data.Count; i++)
+            {
+                if (categoryId == 3) //VIa
+                {
+                    //[User]|[Password]|[UID]|[2FA]|[Mail]|[PassMail]
+                    var splitdata = list_data[i].Split('|');
+
+                    if (splitdata.Length == 6)
+                    {
+                        var via_clone = new Via
+                            {
+                                User = list_data[0],
+                                Password = list_data[1],
+                                UID = list_data[2],
+                                TwoFa = list_data[3],
+                                Mail = list_data[4],
+                                PasswordMail = list_data[5],
+                            };
+                        list_via_add.Add(via_clone);
+                    }
+                }
+                else if (categoryId == 1)
+                {
+                    list_proxy_add.Add(new Proxy
+                        {
+
+                            IsSold = false,
+                            ProductId = product.Id,
+                            OrderId = 1,
+                            Name = list_data[i]
+
+                        });
+                }
+            }
+
+            if (categoryId == 3)
+            {
+                warning = $"Thêm {list_via_add.Count} via hợp lệ";
+            }
+
+            if (categoryId == 1)
+            {
+                warning = $"Thêm {list_proxy_add.Count} proxy hợp lệ";
+            }
+        }
+        catch (Exception err)
+        {
+            _noti.Notify(NotificationSeverity.Error, "Lỗi file :", err.Message);
+            dialogService.Close();
+        }
+    }
+
+    async Task OnChangeSetting()
+    {
+        var Ptype = await _ptypeServices.GetIdAsync(product.ProductTypeId.ToString());
+        categoryId = Ptype.Category.Id;
+        switch (categoryId)
+        {
+            case 1://Proxy
+                isDisableAmount = true;
+                product.PathImage = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSowIqOMS_zFp5vpAO8DgFwUuZDjH-WZMzyO8x3PpcBZ5I7HDSRrYHP05WI14HsE0TCfMA&usqp=CAU";
+
+                break;
+            case 2://Tool
+                isDisableAmount = false;
+                product.PathImage = "https://www.psdgraphics.com/wp-content/uploads/2009/01/3d-software-box.jpg";
+
+                break;
+            case 3://Via
+                isDisableAmount = true;
+                product.PathImage = "https://img3.wallspic.com/attachments/originals/1/9/8/2/4/142891-graphics-pattern-red-technology-line-6080x3420.jpg";
+                break;
+            case 4://Box
+                isDisableAmount = false;
+                product.PathImage = "https://vn-test-11.slatic.net/p/d6325135f462e9f969cfe15dbc89726e.jpg";
+                break;
+            default:
+                isDisableAmount = true;
+                break;
+        }
+        StateHasChanged();
+    }
+    protected override void OnInitialized()
+    {
+        product = new Product
+            {
+                Name = "",
+                Amount = 0,
+                Backup = false,
+                Change = false,
+                Friend = "",
+                IsAvaiable = false,
+                Guarantee = 0,
+                Ram = "",
+                TwoFA = false,
+                CPU = "",
+                IP = "",
+                PathImage = "",
+                Model = "",
+                Price = 0,
+                ProductTypeId = 1,
+                Setting = "",
+                Sold = 0,
+                Stock = 0,
+                Userid = "",
+            };
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+                userName = user.FindFirst(ClaimTypes.Name).Value;
+                list_ptype = await _ptypeServices.ListAsync();
+
+                if (productId > 0)
+                {
+                    isUpdated = true;
+                    product = await _productServices.GetIdAsync(productId.ToString());
+                    var Ptype = await _ptypeServices.GetIdAsync(product.ProductTypeId.ToString());
+                    categoryId = Ptype.Category.Id;
+                    await OnChangeSetting();
+                }
+                else
+                {
+
+                    isUpdated = false;
+
+                }
+
+
+            }
+            StateHasChanged();
+
+        }
+    }
+}
+

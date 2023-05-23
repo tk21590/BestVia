@@ -1,0 +1,223 @@
+﻿@page "/user/dashboard"
+
+
+@inject IProductServicesClient _productServices;
+@inject IUserServicesClient _userServices;
+@inject ISummaryServicesClient _summaryServices;
+@inject IDescriptionServicesClient _desServices;
+
+@inject NotificationService _noti;
+@inject AuthenticationStateProvider _authenProvider
+
+@inject DialogService _dialog
+@attribute [Authorize]
+
+<style>
+    .rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+    }
+
+        .rating > input {
+            display: none;
+        }
+
+        .rating > label {
+            position: relative;
+            width: 1em;
+            font-size: 12px;
+            color: #FFA500;
+            cursor: pointer;
+        }
+
+            .rating > label::before {
+                content: "\2605";
+                position: absolute;
+                opacity: 1;
+            }
+
+</style>
+<RadzenContent Container="main">
+    <ChildContent>
+        <RadzenCard Class="rz-border-radius-3 ml-4 mr-4">
+
+            <div class="row">
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <CardAdmin Text="Số dư" BGColor="bg-c-purpil" Description="Số dư còn lại" Icon="fa fa-address-card" Value="@userInfo.balance" />
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <CardAdmin Text="Sử dụng" BGColor="bg-c-yellow" Description="Số dư đã sử dụng" Icon="fa fa-credit-card" Value="@userInfo.balance_used" />
+                </div>
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <CardAdmin Text="Tổng" BGColor="bg-c-brown" Description="Số dư đã nạp" Icon="fa fa-university" Value="@userInfo.balance_total" />
+                </div>
+            </div>
+        </RadzenCard>
+        <RadzenCard Class="rz-border-radius-3 m-4 rz-border-primary rz-background-color-info-dark">
+            <RadzenDataGrid AllowColumnResize="true"
+                            Data="@last_history"
+                            TItem="History">
+                <Columns>
+                    <RadzenDataGridColumn TItem="History" Property="Header" Width="160px" TextAlign="TextAlign.Left">
+                        <Template Context="item">
+                            <RadzenText class="text-success font-weight-500" Style="font-size:small" TextStyle="TextStyle.Body2" TextAlign="TextAlign.Left">
+                                <span class="text-primary font-weight-bold">@item.Username</span>@($" vừa thanh toán đơn {item.Header.ToLower()} - với giá {Helper.Money_ConvertToString(item.Value)} lúc {Helper.Date_StringTimeConvert(item.DateCreated)}")
+
+                            </RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="History" Property="Header" Width="50px" TextAlign="TextAlign.Right">
+                        <Template Context="item">
+                            <RadzenBadge BadgeStyle="BadgeStyle.Primary" Shade="Shade.Lighter" Style="font-size:8px" Text="@Core.GetTimeMinify(item.DateCreated)" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="History" Property="Header" Width="50px" TextAlign="TextAlign.Right">
+                        <Template Context="item">
+
+                            <div class="rating">
+                                @for (int i = 0; i < 5; i++)
+                                {
+                                    <input type="radio" name="rating" value="@i" id="@i">
+
+                                    <label for="@i">☆</label>
+
+                                }
+
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="History" Property="HistoryType.Name" Width="40px" TextAlign="TextAlign.Right">
+                        <Template Context="item">
+                            <RadzenBadge BadgeStyle="BadgeStyle.Success" Style="font-size:10px" Text="@item.HistoryType.Name" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+
+        </RadzenCard>
+        <RadzenCard Class="rz-border-radius-3 m-4 rz-border-success">
+            <div>@(new MarkupString(description.Content))</div>
+        </RadzenCard>
+
+        <RadzenCard Class="rz-border-radius-3 m-4">
+            <div class="row ml-2">
+                <RadzenStack Orientation="Orientation.Horizontal">
+                    <RadzenBadge class="p-2" Style="font-size:20px" Shade="Shade.Lighter" BadgeStyle="BadgeStyle.Secondary"
+                                 Text="Lịch sử hoạt động">
+
+                    </RadzenBadge>
+                </RadzenStack>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-lg-2 col-md-4 col-sm-6">
+
+                    <RadzenButton Click=@(()=>SearchTime()) ButtonStyle="ButtonStyle.Secondary" ButtonType="ButtonType.Button" Icon="search" Shade="Shade.Dark" style="position: static; width: 100%" Text="Tìm theo ngày">
+                    </RadzenButton>
+                </div>
+                <div class="col-lg-10 col-md-8 col-sm-6">
+                    <RadzenDatePicker @bind-Value=@dfrom Min="DateTime.Today.AddDays(-30)" Max="DateTime.Today">
+                        <FooterTemplate>
+                            <RadzenButton Click=@(args =>dfrom = Core.Date_GetStartTimeOfDay( DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                        </FooterTemplate>
+                    </RadzenDatePicker>
+                    <RadzenDatePicker @bind-Value=@dto Min="DateTime.Today.AddDays(-30)" Max="DateTime.Today">
+                        <FooterTemplate>
+                            <RadzenButton Click=@(args => dto =Core.Date_GetEndTimeOfDay(DateTime.UtcNow.AddHours(7))) Text="Hôm nay" class="my-3 w-100" />
+                        </FooterTemplate>
+                    </RadzenDatePicker>
+                </div>
+                <div class="row ml-3 mt-2">
+                    <RadzenText class="text-danger font-weight-bold" TextStyle="TextStyle.Caption" Text="Bạn chỉ có thể tìm kiếm tối đa 30 ngày gần nhất"></RadzenText>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-lg-12">
+                    <RadzenDataGrid AllowColumnResize="true" FilterMode="FilterMode.Simple"
+                                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.Default"
+                                    LogicalFilterOperator="LogicalFilterOperator.Or"
+                                    AllowSorting="true" PageSize="10" AllowPaging="true"
+                                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                    Data="@histories"
+                                    TItem="History">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="History" Property="HistoryType.Name" Filterable="true" Title="Phân Loại" Frozen="false" Width="50px" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenBadge BadgeStyle="@Helper.ToBadgeId(item.HistoryTypeId)" class="m-1" Text="@item.HistoryType.Name" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="History" Property="Header" Filterable="true" Title="Thông tin" Frozen="false" Width="160px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="History" Property="Value" Filterable="true" Title="Số dư" Width="80px">
+                                <Template Context="item">
+                                    @String.Format("{0}",Helper.Money_ConvertToString(item.Value))
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="History" Filterable="true" Property="DateCreated" Title="Thời gian" Width="100px">
+                                <Template Context="item">
+                                    @String.Format("{0}",Helper.Date_StringTimeConvert(item.DateCreated))
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </div>
+
+            </div>
+        </RadzenCard>
+
+    </ChildContent>
+</RadzenContent>
+
+
+
+
+
+@code {
+    List<History> histories = new();
+    List<History> last_history = new();
+    SearchModel searchModel = new();
+    Description description = new();
+    UserInfo userInfo = new();
+    string userId = "";
+    DateTime dfrom = DateTime.Today.AddDays(-30);
+    DateTime dto = DateTime.Today.AddDays(1).Date.AddTicks(-1).AddSeconds(-1);
+    bool allowVirtualization;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var authState = await _authenProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated)
+            {
+                userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+
+                histories = await _summaryServices.DanhSachLichSuDatHang(new SearchModel
+                    {
+                        from = Core.Date_DateTimeToUnitUnixTimestamp(Core.Date_GetFirstDayInMount()),
+                        to = Core.Date_GetTimeNowInt(),
+                        userorderid = userId
+                    });
+                // histories = histories.Where(c => c.HistoryTypeId < 4).ToList();
+                userInfo = await _summaryServices.LayThongTinUser(userId, false);
+                description = await _desServices.GetHeaderAsync("Thông báo đến user");
+                last_history = await _summaryServices.DanhSachLichSuQuangCao();
+            }
+
+            StateHasChanged();
+        }
+    }
+
+
+
+    async Task SearchTime()
+    {
+        searchModel.userorderid = userId;
+        searchModel.from = Core.Date_DateTimeToUnitUnixTimestamp(dfrom);
+        searchModel.to = Core.Date_DateTimeToUnitUnixTimestamp(dto);
+        histories = await _summaryServices.DanhSachLichSuDatHang(searchModel);
+        StateHasChanged();
+
+    }
+}
+

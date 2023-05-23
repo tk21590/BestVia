@@ -1,0 +1,31 @@
+﻿
+<style>
+    .separator {
+        display: flex;
+        align-items: center;
+    }
+
+        .separator h2 {
+            padding: 0 1rem; /* creates the space */
+        }
+
+        .separator .line {
+            flex: 1;
+            height: 3px;
+            background-color: @Color;
+        }
+</style>
+<div class="separator">
+    <RadzenBadge BadgeStyle="BadgeStyle.Secondary" Shade="Shade.Dark" Style="font-size:20px;padding:5px;margin:5px" Text="@Text" />
+
+</div>
+<RadzenProgressBar Value="100" ProgressBarStyle="ProgressBarStyle.Secondary" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+
+@code {
+    [Parameter]
+    public string Text { get; set; }
+    [Parameter]
+    public string Color { get; set; }
+    [Parameter]
+    public string TextColor { get; set; }
+}
